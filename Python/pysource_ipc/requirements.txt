@@ -1,0 +1,2 @@
+# requirements.txt
+pyzmq==25.1.2
