@@ -53,6 +53,8 @@ class EntRecInit(bpy.types.Operator):
         bpy.utils.register_class(entrec_ops.StopRecordingOperator)
 
         bpy.utils.register_class(entrec_ops.DeleteSelectedReceivingEntityOperator)
+        bpy.utils.register_class(entrec_ops.DeleteAllReceivingEntitiesOperator)
+
         bpy.utils.register_class(entrec_ops.DeleteSelectedTransferringEntityOperator)
 
         bpy.utils.register_class(entrec_ui.EntRecControlPanel)
@@ -87,6 +89,8 @@ def unregister():
     bpy.utils.unregister_class(entrec_ops.StopRecordingOperator)
 
     bpy.utils.unregister_class(entrec_ops.DeleteSelectedReceivingEntityOperator)
+    bpy.utils.unregister_class(entrec_ops.DeleteAllReceivingEntitiesOperator)
+
     bpy.utils.unregister_class(entrec_ops.DeleteSelectedTransferringEntityOperator)
 
     bpy.utils.unregister_class(entrec_ui.EntRecControlPanel)

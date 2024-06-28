@@ -109,6 +109,24 @@ class DeleteSelectedReceivingEntityOperator(bpy.types.Operator):
         return {'FINISHED'}
     
 
+class DeleteAllReceivingEntitiesOperator(bpy.types.Operator):
+    bl_idname = "entrec.delete_all_receiving_entities"
+    bl_label  = "Delete All Entities"
+
+
+    
+
+    def execute(self, context):
+
+        entlist = bpy.context.scene.entrec_props.receiving_entlist
+
+        for i in range(len(entlist)):
+            entlist.remove(0)
+
+
+        return {'FINISHED'}
+    
+
 
 
 class DeleteSelectedTransferringEntityOperator(bpy.types.Operator):

@@ -124,7 +124,7 @@ class TransferDataSettingsSubpanel(bpy.types.Panel):
         else:
             controlsRow.enabled = True
 
-        delSelectedOp  = controlsRow.operator('entrec.delete_selected_entity_receiving')
+        delSelectedEntsOp  = controlsRow.operator('entrec.delete_selected_entity_transferring')
 
 
 
@@ -189,5 +189,6 @@ class ReceivingDataSettingsSubpanel(bpy.types.Panel):
             controlsRow.enabled = True
 
         delSelectedOp  = controlsRow.operator('entrec.delete_selected_entity_receiving')
+        delAllEntsOp   = controlsRow.operator('entrec.delete_all_receiving_entities')
 
 
