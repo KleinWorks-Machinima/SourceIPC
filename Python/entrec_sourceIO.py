@@ -31,7 +31,6 @@ from SourceIO.library.utils import FileBuffer
 
 
 
-
 # noinspection PyPep8Naming
 class ENTREC_OT_MDLImport(bpy.types.Operator, ModelOptions):
     """Load Source Engine MDL models"""
@@ -77,6 +76,14 @@ class ENTREC_OT_MDLImport(bpy.types.Operator, ModelOptions):
             #     generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}
     
+
+
+
+
+classes = (
+    ENTREC_OT_MDLImport,
+)
+
 
 
 if __name__ == "__main__":

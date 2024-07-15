@@ -3,7 +3,7 @@
 
 bl_info = {
     "name": "EntRec",
-    "blender": (3, 80, 0),
+    "blender": (3, 4, 0),
     "category": "Object",
 }
 
@@ -17,91 +17,42 @@ if "bpy" in locals():
     importlib.reload(entrec_ui)
 
 else:
-    from source_ipc import entrec_main
-    from source_ipc import entrec_props
-    from source_ipc import entrec_ops
-    from source_ipc import entrec_ui
+    from source_ipc import entrec_main, entrec_props, entrec_ops, entrec_ui
 
 import bpy
 
+classes = ()
+
 if bpy.ops.sourceio != None:
         from . import entrec_sourceIO
+        classes += entrec_sourceIO.classes
 
+classes += entrec_props.classes
+classes += entrec_ops.classes
+classes += entrec_ui.classes
 
-class EntRecInit(bpy.types.Operator):
-    """Registers all EntRec related operators/panels/props."""
-    bl_idname = "entrec.init"
-    bl_label = "Initialize EntRec"
- 
-    @classmethod
-    def poll(cls, context):
-        return True
- 
-    def execute(self, context):
-        if bpy.ops.sourceio != None:
-            bpy.utils.register_class(entrec_sourceIO.ENTREC_OT_MDLImport)
-
-        bpy.utils.register_class(entrec_props.EntRecEntity)
-        bpy.utils.register_class(entrec_props.EntRecProperties)
-
-        bpy.types.Scene.entrec_props = bpy.props.PointerProperty(type=entrec_props.EntRecProperties)
-
-        bpy.utils.register_class(entrec_props.ENTREC_UL_receiving_entlist)
-        bpy.utils.register_class(entrec_props.ENTREC_UL_transferring_entlist)
-
-        bpy.utils.register_class(entrec_ops.StartRecordingOperator)
-        bpy.utils.register_class(entrec_ops.StopRecordingOperator)
-
-        bpy.utils.register_class(entrec_ops.DeleteSelectedReceivingEntityOperator)
-        bpy.utils.register_class(entrec_ops.DeleteAllReceivingEntitiesOperator)
-
-        bpy.utils.register_class(entrec_ops.DeleteSelectedTransferringEntityOperator)
-
-        bpy.utils.register_class(entrec_ui.EntRecControlPanel)
-
-        bpy.utils.register_class(entrec_ui.ReceivingDataSettingsSubpanel)
-        bpy.utils.register_class(entrec_ui.TransferDataSettingsSubpanel)
-
-        bpy.utils.unregister_class(EntRecInit)
-
-        return {'FINISHED'}
 
 
 
 
 def register():
-    bpy.utils.register_class(EntRecInit)
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+    bpy.types.Scene.entrec_props = bpy.props.PointerProperty(type=entrec_props.EntRecProperties)
+
 
 
 
 
 def unregister():
-    if bpy.ops.sourceio != None:
-            bpy.utils.unregister_class(entrec_sourceIO.ENTREC_OT_MDLImport)
-
-    bpy.utils.unregister_class(entrec_props.EntRecEntity)
-    bpy.utils.unregister_class(entrec_props.EntRecProperties)
-
-    bpy.utils.unregister_class(entrec_props.ENTREC_UL_receiving_entlist)
-    bpy.utils.unregister_class(entrec_props.ENTREC_UL_transferring_entlist)
-
-    bpy.utils.unregister_class(entrec_ops.StartRecordingOperator)
-    bpy.utils.unregister_class(entrec_ops.StopRecordingOperator)
-
-    bpy.utils.unregister_class(entrec_ops.DeleteSelectedReceivingEntityOperator)
-    bpy.utils.unregister_class(entrec_ops.DeleteAllReceivingEntitiesOperator)
-
-    bpy.utils.unregister_class(entrec_ops.DeleteSelectedTransferringEntityOperator)
-
-    bpy.utils.unregister_class(entrec_ui.EntRecControlPanel)
-
-    bpy.utils.unregister_class(entrec_ui.ReceivingDataSettingsSubpanel)
-    bpy.utils.unregister_class(entrec_ui.TransferDataSettingsSubpanel)
-
-    bpy.utils.register_class(EntRecInit)
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+        
+    del bpy.types.Scene.entrec_props
 
 
 
 if __name__ == "__main__":
-    unregister()
+    register()
 

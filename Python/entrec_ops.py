@@ -20,6 +20,8 @@ import threading
 
 
 
+
+
 class StartRecordingOperator(bpy.types.Operator):
     bl_idname = "entrec.startrecording"
     bl_label  = "Start Recording"
@@ -146,3 +148,12 @@ class DeleteSelectedTransferringEntityOperator(bpy.types.Operator):
 
         return {'FINISHED'}
     
+
+
+classes = (
+    StartRecordingOperator,
+    StopRecordingOperator,
+    DeleteSelectedReceivingEntityOperator,
+    DeleteAllReceivingEntitiesOperator,
+    DeleteSelectedTransferringEntityOperator,
+)

@@ -10,6 +10,8 @@
 
 import bpy
 
+
+
 class EntRecEntity(bpy.types.PropertyGroup):
 
     ent_name: bpy.props.StringProperty(name="Name", default="{NO_NAME}")
@@ -58,3 +60,12 @@ class ENTREC_UL_transferring_entlist(bpy.types.UIList):
         layout.label(text=item.ent_name)
         layout.label(text=item.ent_type)
         layout.label(text=item.ent_modelpath)
+
+
+
+classes = (
+    EntRecEntity,
+    EntRecProperties,
+    ENTREC_UL_receiving_entlist,
+    ENTREC_UL_transferring_entlist,
+)

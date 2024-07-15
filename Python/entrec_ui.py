@@ -192,3 +192,11 @@ class ReceivingDataSettingsSubpanel(bpy.types.Panel):
         delAllEntsOp   = controlsRow.operator('entrec.delete_all_receiving_entities')
 
 
+
+
+
+classes = (
+    EntRecControlPanel,
+    TransferDataSettingsSubpanel,
+    ReceivingDataSettingsSubpanel,
+)
