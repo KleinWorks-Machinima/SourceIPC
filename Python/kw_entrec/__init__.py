@@ -1,10 +1,11 @@
-
-
-
 bl_info = {
     "name": "EntRec",
+    "description": "Implementation of KleinWorks: Machinima's Entity Recording feature into Blender.",
     "blender": (3, 40, 0),
-    "category": "Object",
+    "version": (0, 1),
+    "location": "View3D > UI",
+    "warning": "REQUIRES the latest version of SourceIO to be INSTALLED and ENABLED to function correctly.",
+    "category": "Animation",
 }
 
 

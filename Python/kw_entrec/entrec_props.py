@@ -35,7 +35,7 @@ class EntRecProperties(bpy.types.PropertyGroup):
     receiving_entlist:    bpy.props.CollectionProperty(type=EntRecEntity)
     transferring_entlist: bpy.props.CollectionProperty(type=EntRecEntity)
 
-    models_filepath: bpy.props.StringProperty(name="Models Filepath", subtype='FILE_PATH', default="")
+    models_filepath: bpy.props.StringProperty(name="Models Filepath", subtype='FILE_PATH', default="\\",)
 
 
 
