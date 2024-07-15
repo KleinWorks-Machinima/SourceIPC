@@ -3,7 +3,7 @@
 
 bl_info = {
     "name": "EntRec",
-    "blender": (3, 4, 0),
+    "blender": (3, 40, 0),
     "category": "Object",
 }
 
@@ -17,7 +17,7 @@ if "bpy" in locals():
     importlib.reload(entrec_ui)
 
 else:
-    from source_ipc import entrec_main, entrec_props, entrec_ops, entrec_ui
+    from . import entrec_main, entrec_props, entrec_ops, entrec_ui
 
 import bpy
 
