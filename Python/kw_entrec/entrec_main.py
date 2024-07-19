@@ -7,6 +7,26 @@
 #//===================| PROPERTY OF THE KLEINWORKS™ CORPORTATION®® |===================\\
 
 
+# This block is for automatically installing PyZMQ if it isnt already installed in Blender's Python interpreter
+import subprocess
+import sys
+
+def pip_list():
+    args = [sys.executable, "-m", "pip", "list"]
+    subProc = subprocess.run(args, check=True, capture_output=True)
+    return subProc.stdout.decode()
+
+def install_pyzmq():
+    args = [sys.executable, "-m", "pip", "install", "pyzmq"]
+    subProc = subprocess.run(args, check=True, capture_output=True)
+
+
+
+if "pyzmq" not in pip_list():
+    print("KleinWorks: PyZMQ not installed, using pip to install PyZMQ...")
+    install_pyzmq()
+
+
 
 
 if "bpy" in locals():
@@ -28,6 +48,8 @@ if bpy.ops.sourceio != None:
 import json
 import math
 import re
+
+
 
 entRecIPC = pysource_ipc.pysrc_ipc.InSourceOutSource("tcp://*:5556", "tcp://localhost:5555")
 entRecIPC.dropOutTolerance = 15
