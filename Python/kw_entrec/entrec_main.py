@@ -65,6 +65,7 @@ def EntRecMainLoop():
 
     enable_data_reception    = bpy.context.scene.entrec_props.enable_data_reception
     enable_data_transferring = bpy.context.scene.entrec_props.enable_data_transferring
+    is_recording             = bpy.context.scene.entrec_props.is_recording
 
    
 
@@ -87,12 +88,12 @@ def EntRecMainLoop():
 
     entRecIPC.RunFuncLoop()
 
-    if bpy.context.scene.entrec_props.is_recording:
-        return 0.0001
-    else:
+    if is_recording == False and entRecIPC.isReceivingInput == False:
         entRecUtils.lastOutputTick = 0
         entRecUtils.lastInputTick  = 0
         return None
+    else:
+        return 0.0001
 
 
 

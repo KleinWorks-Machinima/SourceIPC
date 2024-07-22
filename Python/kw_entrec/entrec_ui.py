@@ -6,6 +6,12 @@
 # 
 #//===================| PROPERTY OF THE KLEINWORKS™ CORPORTATION®® |===================\\
 
+if "bpy" in locals():
+    import importlib
+    
+    importlib.reload(entrec_main)
+else:
+    from . import entrec_main
 
 
 import bpy
@@ -183,7 +189,7 @@ class ReceivingDataSettingsSubpanel(bpy.types.Panel):
         
 
         controlsRow = mainBox.row(align=True)
-        if len(entList) < 1 or context.scene.entrec_props.is_recording is True:
+        if len(entList) < 1 or entrec_main.entRecIPC.isReceivingInput == True:
             controlsRow.enabled = False
         else:
             controlsRow.enabled = True
