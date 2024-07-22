@@ -30,10 +30,10 @@ class EntRecProperties(bpy.types.PropertyGroup):
 
 
     receiving_entlist_index:    bpy.props.IntProperty()
-    transferring_entlist_index: bpy.props.IntProperty()
+    #transferring_entlist_index: bpy.props.IntProperty()
 
     receiving_entlist:    bpy.props.CollectionProperty(type=EntRecEntity)
-    transferring_entlist: bpy.props.CollectionProperty(type=EntRecEntity)
+    #transferring_entlist: bpy.props.CollectionProperty(type=EntRecEntity)
 
     models_filepath: bpy.props.StringProperty(name="Models Filepath", subtype='FILE_PATH', default="\\",)
 
@@ -52,7 +52,7 @@ class ENTREC_UL_receiving_entlist(bpy.types.UIList):
         layout.label(text=item.ent_modelpath)
 
 
-
+'''
 class ENTREC_UL_transferring_entlist(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
@@ -60,12 +60,12 @@ class ENTREC_UL_transferring_entlist(bpy.types.UIList):
         layout.label(text=item.ent_name)
         layout.label(text=item.ent_type)
         layout.label(text=item.ent_modelpath)
-
+'''
 
 
 classes = (
     EntRecEntity,
     EntRecProperties,
     ENTREC_UL_receiving_entlist,
-    ENTREC_UL_transferring_entlist,
+    #ENTREC_UL_transferring_entlist,
 )

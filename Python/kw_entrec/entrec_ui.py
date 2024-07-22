@@ -33,31 +33,31 @@ class EntRecControlPanel(bpy.types.Panel):
         
 
 
-        subTopColumn1 = topRow.column(align=False)
-        subTopColumn1.alignment = 'RIGHT'
+        #subTopColumn1 = topRow.column(align=False)
+        #subTopColumn1.alignment = 'RIGHT'
 
-        subTopColumn1.scale_x = 0.8
-        subTopColumn1.scale_y = 1
-
-
-        startrec_op = subTopColumn1.operator('entrec.startrecording', text="Start Recording")
-        stoprec_op  = subTopColumn1.operator('entrec.stoprecording',  text="Stop Recording")
+        #subTopColumn1.scale_x = 0.8
+        #subTopColumn1.scale_y = 1
 
 
-        subTopColumn2 = topRow.column(align=False)
-
-        subTopColumn2.enabled = context.scene.entrec_props.is_recording is False
-
-        subTopColumn2.alignment = 'LEFT'
-
-        subTopColumn2.scale_x = 0.95
-        subTopColumn2.scale_y = 1
+        startrec_op = topRow.operator('entrec.startrecording', text="Start Recording")
+        stoprec_op  = topRow.operator('entrec.stoprecording',  text="Stop Recording")
 
 
+        #subTopColumn2 = topRow.column(align=False)
 
-        subTopColumn2.prop(context.scene.entrec_props, 'enable_data_reception', text="Enable Data Reception")
+        #subTopColumn2.enabled = context.scene.entrec_props.is_recording is False
 
-        subTopColumn2.prop(context.scene.entrec_props, 'enable_data_transferring', text="Enable Data Transferring")
+        #subTopColumn2.alignment = 'LEFT'
+
+        #subTopColumn2.scale_x = 0.95
+        #subTopColumn2.scale_y = 1
+
+
+
+        #subTopColumn2.prop(context.scene.entrec_props, 'enable_data_reception', text="Enable Data Reception")
+
+        #subTopColumn2.prop(context.scene.entrec_props, 'enable_data_transferring', text="Enable Data Transferring")
 
         layout.label(text="Path to folder containing \'models\\\' and \'materials\\\':")
         subRow = layout.row()
@@ -67,7 +67,7 @@ class EntRecControlPanel(bpy.types.Panel):
 
 
 
-
+'''
 class TransferDataSettingsSubpanel(bpy.types.Panel):
     bl_label = "Transfer Data"
     bl_idname = "ENTREC_PT_transfer_data_settings"
@@ -89,7 +89,7 @@ class TransferDataSettingsSubpanel(bpy.types.Panel):
 
         mainBox = layout.box()
 
-        mainBox.enabled = context.scene.entrec_props.enable_data_transferring is True
+        #mainBox.enabled = context.scene.entrec_props.enable_data_transferring is True
 
         mainBox.label(text="Selected entity info:")
 
@@ -125,7 +125,7 @@ class TransferDataSettingsSubpanel(bpy.types.Panel):
             controlsRow.enabled = True
 
         delSelectedEntsOp  = controlsRow.operator('entrec.delete_selected_entity_transferring')
-
+'''
 
 
 
@@ -152,7 +152,7 @@ class ReceivingDataSettingsSubpanel(bpy.types.Panel):
 
         mainBox = layout.box()
 
-        mainBox.enabled = context.scene.entrec_props.enable_data_reception is True
+        #mainBox.enabled = context.scene.entrec_props.enable_data_reception is True
 
         mainBox.label(text="Selected entity info:")
 
@@ -197,6 +197,6 @@ class ReceivingDataSettingsSubpanel(bpy.types.Panel):
 
 classes = (
     EntRecControlPanel,
-    TransferDataSettingsSubpanel,
+    #TransferDataSettingsSubpanel,
     ReceivingDataSettingsSubpanel,
 )
