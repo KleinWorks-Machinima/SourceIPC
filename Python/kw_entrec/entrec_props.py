@@ -25,8 +25,8 @@ class EntRecEntity(bpy.types.PropertyGroup):
 class EntRecProperties(bpy.types.PropertyGroup):
     is_recording: bpy.props.BoolProperty(default=False)
 
-    enable_data_transferring: bpy.props.BoolProperty(default=False)
-    enable_data_reception:    bpy.props.BoolProperty(default=False)
+    enable_data_transferring: bpy.props.BoolProperty(default=True)
+    enable_data_reception:    bpy.props.BoolProperty(default=True)
 
 
     receiving_entlist_index:    bpy.props.IntProperty()
