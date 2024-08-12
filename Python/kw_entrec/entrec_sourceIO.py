@@ -66,6 +66,8 @@ class ENTREC_OT_MDLImport(bpy.types.Operator, ModelOptions):
 
             bpy.context.scene.collection.objects.link(model_container.objects[0])
             bpy.context.view_layer.objects.active = model_container.objects[0]
+            if model_container.armature:
+                 bpy.context.scene.collection.objects.link(model_container.armature)
             #put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
             # if self.import_animations and model_container.armature:
             #     import_animations(content_manager, model_container.mdl, model_container.armature, self.scale)

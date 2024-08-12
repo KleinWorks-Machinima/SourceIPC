@@ -12,12 +12,18 @@ import bpy
 
 
 
+class EntityBone(bpy.types.PropertyGroup):
+    name:       bpy.props.StringProperty(name="Name", default="{NO_NAME}")
+    proxy_bone: bpy.props.PointerProperty(type=bpy.types.Object)
+
+
 class EntRecEntity(bpy.types.PropertyGroup):
 
-    ent_name: bpy.props.StringProperty(name="Name", default="{NO_NAME}")
-    ent_type: bpy.props.StringProperty(name="Type", default="{NO_TYPE}")
-
+    ent_name:      bpy.props.StringProperty(name="Name", default="{NO_NAME}")
+    ent_type:      bpy.props.StringProperty(name="Type", default="{NO_TYPE}")
     ent_modelpath: bpy.props.StringProperty(name="Model", default="{NO_MODEL}")
+
+    ent_bonelist:  bpy.props.CollectionProperty(type=EntityBone)
 
     ent_blender_object: bpy.props.PointerProperty(type=bpy.types.Object)
 
@@ -64,6 +70,7 @@ class ENTREC_UL_transferring_entlist(bpy.types.UIList):
 
 
 classes = (
+    EntityBone,
     EntRecEntity,
     EntRecProperties,
     ENTREC_UL_receiving_entlist,

@@ -102,8 +102,39 @@ class EntRecUtils():
         
 
 
-    def UpdateBaseSkeletal(self, entity_js, entityObject, tickCount: int):
-        pass
+    def UpdateBaseSkeletal(self, entity_js, entityObject, entBoneList, tickCount: int):
+
+        for index, bone_js in enumerate(entity_js['bonedata']):
+            entBone = entBoneList[index]
+            print(f"bone #[{index}]: {entBone.name}")
+
+            bone = entBone.proxy_bone
+
+
+            BONE_POS = bone_js['POS']
+            BONE_ROT = bone_js['ROT']
+
+            BONE_POS = str.strip(BONE_POS, '()').split(',')
+            BONE_ROT = str.strip(BONE_ROT, '()').split(',')
+
+            BONE_POS = (float(BONE_POS[0]), float(BONE_POS[1]), float(BONE_POS[2]))
+            BONE_ROT = (float(BONE_ROT[0]), float(BONE_ROT[1]), float(BONE_ROT[2]), float(BONE_ROT[3]))
+
+            bone.keyframe_insert(data_path="location", frame=tickCount)
+
+            bone.location[0] = HammerUnitToBlenderUnit(BONE_POS[0])
+            bone.location[1] = HammerUnitToBlenderUnit(BONE_POS[1])
+            bone.location[2] = HammerUnitToBlenderUnit(BONE_POS[2])
+
+            bone.keyframe_insert(data_path="rotation_quaternion", frame=tickCount)
+
+            if bone.rotation_mode != 'QUATERNION':
+                bone.rotation_mode = 'QUATERNION'
+
+            bone.rotation_quaternion.w = BONE_ROT[0]
+            bone.rotation_quaternion.x = BONE_ROT[1]
+            bone.rotation_quaternion.y = BONE_ROT[2]
+            bone.rotation_quaternion.z = BONE_ROT[3]
 
 
 

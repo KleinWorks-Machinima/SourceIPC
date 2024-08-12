@@ -164,11 +164,11 @@ def EntRecUpdateEntList():
             else:
                 bpy.ops.mesh.primitive_cube_add()
 
-            entCube = bpy.context.view_layer.objects.active
+            entModel = bpy.context.view_layer.objects.active
 
-            entCube.name = entity.ent_name
+            entModel.name = entity.ent_name
                             
-            entity.ent_blender_object = entCube
+            entity.ent_blender_object = entModel
 
         elif entity_js['ent_type'] == int(entrec_utils.ENTREC_TYPES.POINT_CAMERA):
 
@@ -181,6 +181,64 @@ def EntRecUpdateEntList():
             bpy.context.view_layer.active_layer_collection.collection.objects.link(entCameraObject)
 
             entity.ent_blender_object = entCameraObject
+        
+        elif entity_js['ent_type'] == int(entrec_utils.ENTREC_TYPES.BASE_SKELETAL):
+
+            entity.ent_type      = "base_skeletal"
+            entity.ent_modelpath = entity_js['ent_modelpath']
+
+            # retreives the full path of the folder the MDL file is located in
+            model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
+            print(model_path)
+
+            # retreives the name of the MDL file itself
+            model_file = re.sub(r'.*/', "", entity.ent_modelpath)
+            print(model_file)
+
+
+            bpy.ops.entrec.sourceio_mdl(filepath=model_path, files=[{'name':model_file}])
+
+            entModel = bpy.context.view_layer.objects.active.find_armature()
+
+            entModel.name = entity.ent_name
+                            
+            entity.ent_blender_object = entModel
+
+            skelCollection = bpy.data.collections.new(f"{entity.ent_name}")
+
+            skelCollection.objects.link(bpy.context.view_layer.objects.active)
+            skelCollection.objects.link(entModel)
+            bpy.context.scene.collection.objects.unlink(bpy.context.view_layer.objects.active)
+            bpy.context.scene.collection.objects.unlink(entModel)
+
+
+            boneCollection = bpy.data.collections.new(f"{entity.ent_name} BONES")
+
+            bpy.context.scene.collection.children.link(skelCollection)
+            bpy.context.scene.collection.children.link(boneCollection)
+
+            poseBones = entModel.pose.bones
+
+            for index, bone_js in enumerate(entity_js['bonedata']):
+                entBone  = entity.ent_bonelist.add()
+                entBone.name = bone_js['name']
+                poseBone = poseBones[entBone.name]
+
+
+                bpy.ops.mesh.primitive_uv_sphere_add(radius=0.2, segments=4, ring_count= 5, align='CURSOR')
+                proxyBone = bpy.context.view_layer.objects.active
+                bpy.context.scene.collection.objects.unlink(proxyBone)
+                proxyBone.name = entBone.name
+                entBone.proxy_bone = proxyBone
+
+                rotConstraint = poseBone.constraints.new("COPY_ROTATION")
+                rotConstraint.mix_mode = 'REPLACE'
+                rotConstraint.target = proxyBone
+
+                posConstraint = poseBone.constraints.new("COPY_LOCATION")
+                posConstraint.target = proxyBone
+
+                boneCollection.objects.link(proxyBone)
 
     return None
 
@@ -214,7 +272,7 @@ def EntRecUpdateEntities():
             entRecUtils.UpdatePointCamera(entity_js,  entity.ent_blender_object, curTickCount)
 
         elif entity.ent_type == 'base_skeletal':
-            entRecUtils.UpdateBaseSkeletal(entity_js, entity.ent_blender_object, curTickCount)
+            entRecUtils.UpdateBaseSkeletal(entity_js, entity.ent_blender_object, entity.ent_bonelist, curTickCount)
 
     return None
 
