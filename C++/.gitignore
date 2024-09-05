@@ -32,3 +32,6 @@
 
 # Build folders
 builds/
+
+# VS stuff
+.vis/

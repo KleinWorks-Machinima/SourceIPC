@@ -66,6 +66,8 @@ InSourceOutSource::InSourceOutSource(int INPUTportnumber, int OUTPUTportnumber)
 
 	m_INPUT_tick_count  = 0;
 	m_OUTPUT_tick_count = 0;
+	m_ENGINE_tick_count = 0;
+	m_peer_ENGINE_tick_count = 0;
 
 	m_pollerTimeout		 = 1;
 	m_drop_out_tolerance = 30;
@@ -104,6 +106,8 @@ InSourceOutSource::InSourceOutSource()
 
 	m_INPUT_tick_count  = 0;
 	m_OUTPUT_tick_count = 0;
+	m_ENGINE_tick_count = 0;
+	m_peer_ENGINE_tick_count = 0;
 
 
 	m_pollerTimeout	     = 1;
@@ -242,6 +246,8 @@ int InSourceOutSource::DisconnectSockets()
 
 	m_INPUT_tick_count  = 0;
 	m_OUTPUT_tick_count = 0;
+	m_ENGINE_tick_count = 0;
+	m_peer_ENGINE_tick_count = 0;
 
 	m_isDoneTransfering		= false;
 	m_peerIsDoneTransfering = false;
@@ -261,7 +267,7 @@ int InSourceOutSource::RunFuncLoop()
 {
 	//printf("Beginning funcloop...\n");
 
-	if (m_INPUT_funcloop == NULL && m_OUTPUT_funcloop == NULL)
+	if (m_INPUT_funcloop == nullptr && m_OUTPUT_funcloop == nullptr)
 		return -1;
 
 	if (m_OUTPUT_funcloop != nullptr) {
@@ -323,6 +329,7 @@ int InSourceOutSource::OutputReady(bool isInFuncLoop)
 
 			m_isSendingOutput = false;
 			m_OUTPUT_tick_count = 0;
+			m_ENGINE_tick_count = 0;
 			m_isDoneTransfering = false;
 
 			zmsg_destroy(&std::get<1>(messageTuple));
@@ -376,8 +383,6 @@ int InSourceOutSource::InputReady(bool isInFuncLoop)
 			//printf("InputReady: Received output ready message!\n");
 			m_peer_routingID = zframe_data(first_frame);
 
-			zframe_destroy(&first_frame);
-			zmsg_destroy(&std::get<1>(messageTuple));
 
 
 			zmsg_t* inputReadyMessage = srcIPCMessage::InputReady_t::New(zframe_new(m_peer_routingID, 5));
@@ -386,7 +391,8 @@ int InSourceOutSource::InputReady(bool isInFuncLoop)
 			int rc = zmsg_send(&inputReadyMessage, m_sockt_INPUT);
 			assert(rc != -1);
 
-
+			zframe_destroy(&first_frame);
+			zmsg_destroy(&std::get<1>(messageTuple));
 
 			m_isReceivingInput = true;
 			//printf("InputReady: Finished readying input!\n");
@@ -418,7 +424,7 @@ int InSourceOutSource::InputReady(bool isInFuncLoop)
 		}
 		}
 
-		messageTuple = PollSocketForMessages(m_sockt_OUTPUT);
+		messageTuple = PollSocketForMessages(m_sockt_INPUT);
 	}
 
 	//printf("InputReady: Received no messages.\n");
@@ -464,6 +470,7 @@ int InSourceOutSource::TransferData(bool isInFuncLoop)
 			return -1;
 
 		m_OUTPUT_tick_count = 0;
+		m_ENGINE_tick_count = 0;
 		m_lastTickReceivedByPeer = 0;
 
 		zmsg_t* transferingDataMessage = srcIPCMessage::TransferingData_t::New(m_OUTPUT_tick_count, zframe_new(m_sending_metadata, strlen(m_sending_metadata)));
@@ -496,6 +503,7 @@ int InSourceOutSource::TransferData(bool isInFuncLoop)
 
 			m_isSendingOutput = false;
 			m_OUTPUT_tick_count = 0;
+			m_ENGINE_tick_count = 0;
 			m_isDoneTransfering = false;
 
 			zmsg_destroy(&std::get<1>(messageTuple));
@@ -523,6 +531,7 @@ int InSourceOutSource::TransferData(bool isInFuncLoop)
 				//Msg("TransferData: Received last RECEIVED_DATA message from peer! Ending data transfer.\n");
 				m_isDoneTransfering = false;
 				m_OUTPUT_tick_count = 0;
+				m_ENGINE_tick_count = 0;
 
 				zmsg_destroy(&std::get<1>(messageTuple));
 				zframe_destroy(&first_frame);
@@ -595,6 +604,7 @@ int InSourceOutSource::TransferData(bool isInFuncLoop)
 
 		m_isSendingOutput = false;
 		m_OUTPUT_tick_count = 0;
+		m_ENGINE_tick_count = 0;
 		m_isDoneTransfering = false;
 
 		return 0;
@@ -713,6 +723,7 @@ int InSourceOutSource::ReceiveData(bool isInFuncLoop)
 			zframe_t* fourth_frame = zmsg_pop(std::get<1>(messageTuple));
 			assert(fourth_frame);
 
+			memcpy(&m_peer_ENGINE_tick_count, zframe_data(third_frame), sizeof(int));
 
 			zmsg_destroy(&std::get<1>(messageTuple));
 			zframe_destroy(&first_frame);
@@ -800,8 +811,6 @@ std::tuple<src_IPC_MESSAGE, zmsg_t*> InSourceOutSource::PollSocketForMessages(zs
 		assert(first_frame);
 
 
-		zmsg_destroy(&duplicateMessage);
-
 
 
 
@@ -817,19 +826,25 @@ std::tuple<src_IPC_MESSAGE, zmsg_t*> InSourceOutSource::PollSocketForMessages(zs
 
 			// first frame can only contain INPUT messages
 		case src_IPC_MESSAGE::INPUT_DISCONNECT: {
+			zmsg_destroy(&duplicateMessage);
+
 			return std::tuple<src_IPC_MESSAGE, zmsg_t*>(src_IPC_MESSAGE::INPUT_DISCONNECT, receivedMessage);
 		}
 
 		case src_IPC_MESSAGE::INPUT_READY: {
+			zmsg_destroy(&duplicateMessage);
+
 			return std::tuple<src_IPC_MESSAGE, zmsg_t*>(src_IPC_MESSAGE::INPUT_READY, receivedMessage);
 		}
 
 		case src_IPC_MESSAGE::RECEIVED_DATA: {
+			zmsg_destroy(&duplicateMessage);
+
 			return std::tuple<src_IPC_MESSAGE, zmsg_t*>(src_IPC_MESSAGE::RECEIVED_DATA, receivedMessage);
 		}
 
 
-		// if the message was of no known message type, or if message isnt an INPUT message
+										   // if the message was of no known message type, or if message isnt an INPUT message
 		default: {
 			break;
 		}
@@ -838,12 +853,15 @@ std::tuple<src_IPC_MESSAGE, zmsg_t*> InSourceOutSource::PollSocketForMessages(zs
 
 
 		// now check second frame for OUTPUT messages
-		
+
 		zframe_t* second_frame = zmsg_pop(duplicateMessage);
 		assert(second_frame);
 
 		src_IPC_MESSAGE second_frame_MessageType = *reinterpret_cast<src_IPC_MESSAGE*>(zframe_data(second_frame));
 		zframe_destroy(&second_frame);
+
+
+		zmsg_destroy(&duplicateMessage);
 
 
 

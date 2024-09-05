@@ -12,7 +12,7 @@ namespace srcIPC {
 	public:
 
 		using InSourceOutSource::InSourceOutSource;
-		using InSourceOutSource::~InSourceOutSource;
+		//using InSourceOutSource::~InSourceOutSource;
 
 
 

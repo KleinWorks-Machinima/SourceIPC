@@ -8,12 +8,12 @@
 #include <iostream>
 #include <cmath>
 
-#include "../includes/czmq/czmq.h"
-#include "../includes/rapidjson/document.h"
-#include "../includes/rapidjson/reader.h"
-#include "../includes/rapidjson/writer.h"
-#include "../includes/rapidjson/stringbuffer.h"
+#include "./czmq/czmq.h"
+#include "./rapidjson/document.h"
+#include "./rapidjson/reader.h"
+#include "./rapidjson/writer.h"
+#include "./rapidjson/stringbuffer.h"
 
 
-#include "srcIPCMessages.h"
+#include "../src/srcIPCMessages.h"
 

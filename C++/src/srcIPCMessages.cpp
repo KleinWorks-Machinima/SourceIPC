@@ -22,7 +22,7 @@ using namespace srcIPCMessage;
 struct OutputReady_t
 {
 
-	OutputReady_t::OutputReady_t() {
+	OutputReady_t() {
 
 	}
 
@@ -47,7 +47,7 @@ struct OutputReady_t
 struct TransferingData_t
 {
 
-	TransferingData_t::TransferingData_t() {
+	TransferingData_t() {
 
 	}
 
@@ -79,7 +79,7 @@ struct TransferingData_t
 struct DataMessage_t
 {
 
-	DataMessage_t::DataMessage_t() {
+	DataMessage_t() {
 
 	}
 
@@ -118,7 +118,7 @@ struct DataMessage_t
 
 struct InputReady_t
 {
-	InputReady_t::InputReady_t() {
+	InputReady_t() {
 
 	}
 
@@ -141,7 +141,7 @@ struct InputReady_t
 
 struct ReceivedData_t
 {
-	ReceivedData_t::ReceivedData_t() {
+	ReceivedData_t() {
 
 	}
 
