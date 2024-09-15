@@ -20,7 +20,7 @@ src_IPC_MESSAGE = pysrcIPC_messages.src_IPC_MESSAGE
 
 class InSourceOutSource:
 
-    def __init__(self, INPUTaddr, OUTPUTaddr) -> None:
+    def __init__(self) -> None:
 
         self.context = zmq.Context.instance()
 
@@ -31,17 +31,20 @@ class InSourceOutSource:
         self.poller.register(self.INPUTsocket, zmq.POLLIN)
         self.poller.register(self.OUTPUTsocket, zmq.POLLIN)
 
-        self.INPUTsocket.bind(INPUTaddr)
-        self.OUTPUTsocket.connect(OUTPUTaddr)
+        self.INPUTportNumber  = 0
+        self.OUTPUTportNumber = 0
 
         self.INPUTFuncLoop  = None
         self.OUTPUTFuncLoop = None
 
-        self.OUTPUTtickCount = 0
-        self.INPUTtickCount  = 0
+        self.OUTPUTtickCount     = 0
+        self.INPUTtickCount      = 0
+        self.peerENGINEtickCount = 0
 
         self.lastTickReceivedByPeer   = 0
         self.lastTickReceivedFromPeer = 0
+
+        self.firstENGINEtick          = 0
 
         self.pollerTimeout = 1
         self.dropOutTolerance = 50
@@ -91,7 +94,43 @@ class InSourceOutSource:
 
 
     def DisconnectSockets(self):
-        pass
+        
+        if self.isReceivingInput != False:
+            self.INPUTsocket.send_multipart(pysrcIPC_messages.CreateInputDisconenctMsg())
+
+        if self.isSendingOutput != False:
+            self.OUTPUTsocket.send_multipart(pysrcIPC_messages.CreateOutputDisconenctMsg())
+        
+
+        lastINPUTendPointAddr  = f"tcp://127.0.0.1:{self.INPUTportNumber}"
+        lastOUTPUTendPointAddr = f"tcp://127.0.0.1:{self.OUTPUTportNumber}"
+
+        
+
+        self.INPUTsocket.unbind(lastINPUTendPointAddr)
+        self.OUTPUTsocket.disconnect(lastOUTPUTendPointAddr)
+
+        self.isReceivingInput = False
+        self.isSendingOutput  = False
+        
+        self.INPUTtickCount      = 0
+        self.OUTPUTtickCount     = 0
+        self.peerENGINEtickCount = 0
+        self.firstENGINEtick     = 0
+
+        self.isDoneTransfering     = False
+        self.peerIsDoneTransfering = False
+
+        self.INPUTFuncLoop  = None
+        self.OUTPUTFuncLoop = None
+
+        self.INPUTportNumber  = 0
+        self.OUTPUTportNumber = 0
+
+        return 0
+
+
+
 
 
 
@@ -100,7 +139,31 @@ class InSourceOutSource:
     
 
     def ConnectSockets(self, INPUTaddr, OUTPUTaddr):
-        pass
+        
+        if self.INPUTportNumber != 0 or self.OUTPUTportNumber != 0 or self.isReceivingInput != False or self.isSendingOutput != False:
+            self.DisconnectSockets()
+
+        self.INPUTportNumber  = INPUTaddr
+        self.OUTPUTportNumber = OUTPUTaddr
+
+        INPUTaddr  = f"tcp://127.0.0.1:{INPUTaddr}"
+        OUTPUTaddr = f"tcp://127.0.0.1:{OUTPUTaddr}"
+
+        self.INPUTsocket.bind(INPUTaddr)
+        self.OUTPUTsocket.connect(OUTPUTaddr)
+
+        self.INPUTFuncLoop  = None
+        self.OUTPUTFuncLoop = None
+
+        self.OUTPUTtickCount     = 0
+        self.INPUTtickCount      = 0
+        self.peerENGINEtickCount = 0
+        self.firstENGINEtick     = 0
+
+        self.lastTickReceivedByPeer   = 0
+        self.lastTickReceivedFromPeer = 0
+
+        
         
 
 
@@ -194,6 +257,8 @@ class InSourceOutSource:
                 self.isReceivingInput       = False
                 self.peerIsDoneTransfering  = False
                 self.INPUTtickCount         = 0
+                self.peerENGINEtickCount    = 0
+                self.firstENGINEtick        = 0
                 return 0
 
 
@@ -356,7 +421,9 @@ class InSourceOutSource:
         if self.isReceivingInput != True:
             if self.InputReady(isInFuncLoop) != 0:
                 return -1
-            self.INPUTtickCount = 0
+            self.INPUTtickCount      = 0
+            self.peerENGINEtickCount = 0
+            self.firstENGINEtick     = 0
 
 
 
@@ -408,7 +475,7 @@ class InSourceOutSource:
                 self.currentINPUTActivity = "Received metadata message."
                 self.currentINPUTStatus   = "Receiving data."
                     
-                # this try-except block may be temporary, trying to fix a bug involving this exception
+            
                 try:
                     self.receivedMetaDataBuffer = bytes.decode(pollResult[1][3], 'utf-8')
                 except UnicodeDecodeError as err:
@@ -423,10 +490,24 @@ class InSourceOutSource:
             if pollResult[0] == src_IPC_MESSAGE.DATA_MESSAGE:
 
                 self.currentINPUTActivity = "Received data message."
-                
-                self.receivedDataBuffer   = bytes.decode(pollResult[1][3], "utf-8")
+
+
+                try:
+                    self.receivedDataBuffer = bytes.decode(pollResult[1][3], 'utf-8')
+                except UnicodeDecodeError as err:
+                    print("ERROR OCCURED WHILE RECEIVING DATA! Problem message is the following:")
+                    print(str(pollResult[1][3]))
+
+                    self.receivedDataBuffer = bytes.decode(pollResult[1][3], 'utf-8', 'replace')
+
+                self.peerENGINEtickCount  = int.from_bytes(pollResult[1][2], 'little')
 
                 self.INPUTtickCount += 1
+
+                if self.firstENGINEtick != 0 and self.peerENGINEtickCount > self.firstENGINEtick:
+                    return -1
+                else:
+                    self.firstENGINEtick = self.peerENGINEtickCount
 
                 return -1
                 

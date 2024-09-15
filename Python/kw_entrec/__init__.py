@@ -22,6 +22,9 @@ else:
 
 import bpy
 
+    
+
+
 classes = ()
 
 if bpy.ops.sourceio != None:
@@ -37,16 +40,43 @@ classes += entrec_ui.classes
 
 
 def register():
+    entrec_main.cl_ipc.ConnectSockets(entrec_main.CL_OUTPUT_PORTNUM, entrec_main.CL_INPUT_PORTNUM)
+    entrec_main.sv_ipc.ConnectSockets(entrec_main.SV_OUTPUT_PORTNUM, entrec_main.SV_INPUT_PORTNUM)
+
+
     for cls in classes:
         bpy.utils.register_class(cls)
 
+    """
+    if bpy.ops.sourceio != None:
+        from . import entrec_sourceIO
+        for cls in entrec_sourceIO.classes:
+             bpy.utils.register_class(cls)
+
+    for cls in entrec_props.classes:
+        bpy.utils.register_class(cls)
+
+    for cls in entrec_ui.classes:
+        bpy.utils.register_class(cls)
+
+    for cls in entrec_ops.classes:
+        bpy.utils.register_class(cls)
+    """
+
+
     bpy.types.Scene.entrec_props = bpy.props.PointerProperty(type=entrec_props.EntRecProperties)
+
+    
 
 
 
 
 
 def unregister():
+    entrec_main.sv_ipc.DisconnectSockets()
+    entrec_main.cl_ipc.DisconnectSockets()
+
+
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
         

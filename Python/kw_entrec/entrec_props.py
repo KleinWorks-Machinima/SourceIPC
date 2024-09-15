@@ -19,8 +19,9 @@ class EntityBone(bpy.types.PropertyGroup):
 
 class EntRecEntity(bpy.types.PropertyGroup):
 
-    ent_name:      bpy.props.StringProperty(name="Name", default="{NO_NAME}")
-    ent_type:      bpy.props.StringProperty(name="Type", default="{NO_TYPE}")
+    ent_id:        bpy.props.IntProperty(   name="ID",    default=0)
+    ent_name:      bpy.props.StringProperty(name="Name",  default="{NO_NAME}")
+    ent_type:      bpy.props.StringProperty(name="Type",  default="{NO_TYPE}")
     ent_modelpath: bpy.props.StringProperty(name="Model", default="{NO_MODEL}")
 
     ent_bonelist:  bpy.props.CollectionProperty(type=EntityBone)
@@ -43,6 +44,8 @@ class EntRecProperties(bpy.types.PropertyGroup):
 
     models_filepath: bpy.props.StringProperty(name="Models Filepath", subtype='FILE_PATH', default="\\",)
 
+    scale_factor:    bpy.props.FloatProperty(name="", default=0.05245901639, precision=11,)
+
 
 
 
@@ -55,6 +58,7 @@ class ENTREC_UL_receiving_entlist(bpy.types.UIList):
 
         layout.label(text=item.ent_name)
         layout.label(text=item.ent_type)
+        layout.label(text=f"{item.ent_id}")
         layout.label(text=item.ent_modelpath)
 
 

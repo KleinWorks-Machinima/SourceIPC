@@ -16,6 +16,7 @@ else:
 
 import bpy
 import threading
+import time
 
 
 
@@ -68,7 +69,8 @@ class StopRecordingOperator(bpy.types.Operator):
 
 
 
-class ResetSockets(bpy.types.Operator):
+class ResetSocketsOperator(bpy.types.Operator):
+    """Resets EntRec's communication system, which tends to fix any issues with establishing a recording."""
     bl_idname = "entrec.resetsockets"
     bl_label  = "Reset Sockets"
 
@@ -79,6 +81,16 @@ class ResetSockets(bpy.types.Operator):
 
 
     def execute(self, context):
+        print("kleinworks: Resetting sockets...")
+        entrec_main.cl_ipc.DisconnectSockets()
+        entrec_main.sv_ipc.DisconnectSockets()
+
+        time.sleep(0.5)
+
+        entrec_main.cl_ipc.ConnectSockets(entrec_main.CL_OUTPUT_PORTNUM, entrec_main.CL_INPUT_PORTNUM)
+        entrec_main.sv_ipc.ConnectSockets(entrec_main.SV_OUTPUT_PORTNUM, entrec_main.SV_INPUT_PORTNUM)
+
+        print("kleinworks: Sockets reset!")
 
         
 
@@ -153,6 +165,7 @@ class DeleteSelectedTransferringEntityOperator(bpy.types.Operator):
 classes = (
     StartRecordingOperator,
     StopRecordingOperator,
+    ResetSocketsOperator,
     DeleteSelectedReceivingEntityOperator,
     DeleteAllReceivingEntitiesOperator,
     DeleteSelectedTransferringEntityOperator,

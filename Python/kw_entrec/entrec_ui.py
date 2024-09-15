@@ -20,6 +20,8 @@ import bpy
 
 
 
+
+
 class EntRecControlPanel(bpy.types.Panel):
     bl_idname = "ENTREC_PT_entrec_controlpanel"
     bl_label = "EntRec Control Panel"
@@ -32,7 +34,16 @@ class EntRecControlPanel(bpy.types.Panel):
         self.layout.label(text="", icon="MODIFIER_DATA")
 
     def draw(self, context):
+
+
         layout = self.layout
+        utilityRow = layout.row(align=False)
+
+        utilityRow.scale_x = 0.3
+
+        resetsockets_op = utilityRow.operator('entrec.resetsockets',
+                                              icon='FILE_REFRESH')
+        
 
         topRow = layout.row(align=False)
 
@@ -45,9 +56,11 @@ class EntRecControlPanel(bpy.types.Panel):
         #subTopColumn1.scale_x = 0.8
         #subTopColumn1.scale_y = 1
 
+        
 
-        startrec_op = topRow.operator('entrec.startrecording', text="Start Recording")
-        stoprec_op  = topRow.operator('entrec.stoprecording',  text="Stop Recording")
+
+        startrec_op = topRow.operator('entrec.startrecording', text="Start Recording", icon='RECORD_ON')
+        stoprec_op  = topRow.operator('entrec.stoprecording',  text="Stop Recording",  icon='RECORD_OFF')
 
 
         #subTopColumn2 = topRow.column(align=False)
@@ -66,8 +79,16 @@ class EntRecControlPanel(bpy.types.Panel):
         #subTopColumn2.prop(context.scene.entrec_props, 'enable_data_transferring', text="Enable Data Transferring")
 
         layout.label(text="Path to folder containing \'models\\\' and \'materials\\\':")
-        subRow = layout.row()
-        subRow.prop(context.scene.entrec_props, 'models_filepath')
+        modelsRow = layout.row()
+        modelsRow.prop(context.scene.entrec_props, 'models_filepath')
+
+        scaleRow = layout.row(align=True)
+        scaleRow.scale_x = 0.6
+        scaleRow.label(text="World Scale Factor:")
+        scaleRow.prop(context.scene.entrec_props, 'scale_factor', text="",)
+        
+
+
         
 
 
@@ -162,21 +183,27 @@ class ReceivingDataSettingsSubpanel(bpy.types.Panel):
 
         mainBox.label(text="Selected entity info:")
 
-        infoRow1 = mainBox.row(align=False)
-        infoRow2 = mainBox.row(align=False)
-        infoRow3 = mainBox.row(align=False)
+        infoColumn = mainBox.column()
 
-        infoRow1.label(text="Entity ID:")
-        infoRow2.label(text="Entity Type:")
-        infoRow3.label(text="Entity Model:")
+        infoRow1 = infoColumn.row(align=False)
+        infoRow2 = infoColumn.row(align=False)
+        infoRow3 = infoColumn.row(align=False)
+        infoRow4 = infoColumn.row(align=False)
+
+        infoRow1.label(text="Entity Name:")
+        infoRow2.label(text="Entity ID:")
+        infoRow3.label(text="Entity Type:")
+        infoRow4.label(text="Entity Model:")
 
         if len(entList) > entListIndex:
             entity = entList[entListIndex]
             infoRow1.label(text=entity.ent_name)
 
-            infoRow2.label(text=entity.ent_type)
+            infoRow2.label(text=f"{entity.ent_id}")
 
-            infoRow3.label(text=entity.ent_modelpath)
+            infoRow3.label(text=entity.ent_type)
+
+            infoRow4.label(text=entity.ent_modelpath)
 
         mainBox.template_list(
             listtype_name = "ENTREC_UL_receiving_entlist",
@@ -189,7 +216,8 @@ class ReceivingDataSettingsSubpanel(bpy.types.Panel):
         
 
         controlsRow = mainBox.row(align=True)
-        if len(entList) < 1 or entrec_main.entRecIPC.isReceivingInput == True:
+        if len(entList) < 1 or entrec_main.cl_ipc.isReceivingInput == True or \
+                               entrec_main.sv_ipc.isReceivingInput == True:
             controlsRow.enabled = False
         else:
             controlsRow.enabled = True

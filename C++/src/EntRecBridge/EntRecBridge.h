@@ -10,23 +10,17 @@
 #include <list>
 #include <math.h>
 #include <string>
+#include <exception>
 
-#include "InSourceOutSource.h"
+#include "czmq/czmq.h"
 #include "rapidjson/rapidjson.h"
+#include "rapidjson/Document.h"
+#include "rapidjson/Writer.h"
 
 
-#define KW_SV_INPUT_PORTNUM  5550
-#define KW_SV_OUTPUT_PORTNUM 5577
+struct Vector_t { char* name; float x; float y; float z; };
 
-#define KW_CL_INPUT_PORTNUM  5551
-#define KW_CL_OUTPUT_PORTNUM 5533
-
-using namespace srcIPC;
-
-
-struct Vector_t { float x; float y; float z; };
-
-struct Quaternion_t { float w; float x; float y; float z; };
+struct Quaternion_t { char* name; float w; float x; float y; float z; };
 
 
 
@@ -41,7 +35,7 @@ struct RawMsg_t
 
 public:
 
-	RawMsg_t(const char* msg_str, int frameNum, int engineTickCount);
+	RawMsg_t(char* msg_str, int frameNum, int engineTickCount);
 };
 
 
@@ -66,12 +60,12 @@ public:
 // to animate that entity.
 struct ParsedEntMetaData_t
 {
-	int				ent_id;
-	int				ent_type;
-	int				ent_numbones;
-	int				ent_parent_id;
-	char*			ent_name;
-	char*			ent_model;
+	int				 ent_id;
+	int			 	 ent_type;
+	int			 	 ent_numbones;
+	int			 	 ent_parent_id;
+	char*			 ent_name;
+	char*			 ent_model;
 
 public:
 
@@ -117,11 +111,6 @@ public:
 	/*======Member-Variables======*/
 public:
 
-	InSourceOutSource m_zmq_server = InSourceOutSource(KW_SV_OUTPUT_PORTNUM, KW_SV_INPUT_PORTNUM);
-	InSourceOutSource m_zmq_client = InSourceOutSource(KW_CL_OUTPUT_PORTNUM, KW_CL_INPUT_PORTNUM);
-
-public:
-
 	int								m_sv_lasttick;
 	int								m_cl_lasttick;
 
@@ -137,7 +126,6 @@ public:
 	std::list<ParsedEntMetaData_t>  m_filtered_initial_metadata;
 
 private:
-
 	
 	std::list<ParsedEntMetaData_t>  m_cl_initial_metadata;
 	std::list<ParsedEntMetaData_t>  m_sv_initial_metadata;
@@ -151,21 +139,24 @@ private:
 	std::list<RawMsg_t>				m_sv_raw_messages;
 	std::list<RawMsg_t>				m_cl_raw_messages;
 
+	char*							m_cl_raw_initial_metadata;
+	char*							m_sv_raw_initial_metadata;
+
 	/*======Member-Functions======*/
 public:
 
-	// Listens for incoming messages from the Server and Client,
-	// and passes recieved messages to ParseMsgData.
-	// Returns -1 when not recording, returns 1 when recording and return 0 when a recording has finished.
-	int				Run();
+	int				ClientRecv(char* recvdMsg, int msgNum, int engineTickCount);
+	int				ServerRecv(char* recvdMsg, int msgNum, int engineTickCount);
 
-private:
+	int				ClientInitialMetadata(char* initialMetadata);
+	int				ServerInitialMetadata(char* initialMetadata);
 
-	int				ClientRecv();
-	int				ServerRecv();
+
+public:
 
 	void			ParseRawMsgData();
-
 	void			FilterParsedMessages();
+
+	void			ClearContents();
 
 };

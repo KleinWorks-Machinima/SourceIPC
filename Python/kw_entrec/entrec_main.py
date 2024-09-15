@@ -38,7 +38,7 @@ if "bpy" in locals():
 else:
     from . import pysource_ipc
     from . import entrec_utils
-
+    from . import cpy_entrecbridge
 
 import bpy
 
@@ -48,13 +48,21 @@ if bpy.ops.sourceio != None:
 import json
 import math
 import re
+import time
 
 
+CL_OUTPUT_PORTNUM = 5533
+CL_INPUT_PORTNUM  = 5551
 
-entRecIPC = pysource_ipc.pysrc_ipc.InSourceOutSource("tcp://*:5556", "tcp://localhost:5555")
-entRecIPC.dropOutTolerance = 15
+SV_OUTPUT_PORTNUM = 5577
+SV_INPUT_PORTNUM  = 5550
 
-entRecUtils = entrec_utils.EntRecUtils()
+
+cl_ipc = pysource_ipc.pysrc_ipc.InSourceOutSource()
+sv_ipc = pysource_ipc.pysrc_ipc.InSourceOutSource()
+
+entRecUtils  = entrec_utils.EntRecUtils()
+entRecBridge = cpy_entrecbridge.PyEntRecBridge()
 
 
 
@@ -67,88 +75,108 @@ def EntRecMainLoop():
     enable_data_transferring = bpy.context.scene.entrec_props.enable_data_transferring
     is_recording             = bpy.context.scene.entrec_props.is_recording
 
-   
+
 
     if enable_data_reception       is True:
-        if entRecIPC.INPUTFuncLoop is None:
-            entRecIPC.ReceiveData()
-        
-        EntRecReceiveData(entRecUtils.lastInputTick)
+        if cl_ipc.INPUTFuncLoop is None:
+            cl_ipc.ReceiveData()
+        if sv_ipc.INPUTFuncLoop is None:
+            sv_ipc.ReceiveData()
 
-    entRecUtils.lastInputTick  = entRecIPC.INPUTtickCount
+        if entRecUtils.cl_lastInputTick < cl_ipc.INPUTtickCount:
+            if cl_ipc.INPUTtickCount == 1:
+                entRecBridge.ClientInitialMetadata(bytes(cl_ipc.receivedMetaDataBuffer, 'UTF-8'))
+
+            entRecBridge.ClientRecv(bytes(cl_ipc.receivedDataBuffer, 'UTF-8'), cl_ipc.INPUTtickCount, cl_ipc.peerENGINEtickCount)
+
+        if entRecUtils.sv_lastInputTick < sv_ipc.INPUTtickCount:
+            if sv_ipc.INPUTtickCount == 1:
+                entRecBridge.ServerInitialMetadata(bytes(sv_ipc.receivedMetaDataBuffer, 'UTF-8'))
+
+            entRecBridge.ServerRecv(bytes(sv_ipc.receivedDataBuffer, 'UTF-8'), sv_ipc.INPUTtickCount, sv_ipc.peerENGINEtickCount)
+        
+
+        if cl_ipc.peerIsDoneTransfering     and sv_ipc.peerIsDoneTransfering or \
+           cl_ipc.isReceivingInput == False and sv_ipc.peerIsDoneTransfering or \
+           sv_ipc.isReceivingInput == False and cl_ipc.peerIsDoneTransfering:
+            
+            if cl_ipc.firstENGINEtick <= sv_ipc.firstENGINEtick:
+                entRecUtils.first_engine_tick = cl_ipc.firstENGINEtick
+            else:
+                entRecUtils.first_engine_tick = sv_ipc.firstENGINEtick
+            
+            print("ParseRawMsgData")
+            entRecBridge.ParseRawMsgData()
+            print("FilterParsedMessages")
+            entRecBridge.FilterParsedMessages()
+            
+            print("ApplyEntMetadata")
+            ApplyEntMetadata()
+            print("ApplyEntData")
+            ApplyEntData()
+
+            print(f"CL first engine tick:  {sv_ipc.firstENGINEtick}")
+            print(f"SV first engine tick: {cl_ipc.firstENGINEtick}")
+
+            print("ClearContents")
+            entRecBridge.ClearContents()
+
+
+
+
+    entRecUtils.cl_lastInputTick  = cl_ipc.INPUTtickCount
+    entRecUtils.sv_lastInputTick  = sv_ipc.INPUTtickCount
 
 
     if enable_data_transferring     is True:
-        if entRecIPC.OUTPUTFuncLoop is None:
-            entRecIPC.TransferData()
-        
-        EntRecTransferData(entRecUtils.lastOutputTick)
+        if cl_ipc.OUTPUTFuncLoop is None:
+            cl_ipc.TransferData()
+        if sv_ipc.OUTPUTFuncLoop is None:
+            sv_ipc.TransferData()
 
-    entRecUtils.lastOutputTick = entRecIPC.OUTPUTtickCount
 
-    entRecIPC.RunFuncLoop()
+    entRecUtils.cl_lastOutputTick = cl_ipc.OUTPUTtickCount
+    entRecUtils.sv_lastOutputTick = sv_ipc.OUTPUTtickCount
 
-    if is_recording == False and entRecIPC.isReceivingInput == False:
-        entRecUtils.lastOutputTick = 0
-        entRecUtils.lastInputTick  = 0
+    cl_ipc.RunFuncLoop()
+    sv_ipc.RunFuncLoop()
+
+    if is_recording == False and cl_ipc.isReceivingInput == False and sv_ipc.isReceivingInput == False:
+        entRecUtils.cl_lastOutputTick = 0
+        entRecUtils.sv_lastOutputTick = 0
+
+        entRecUtils.cl_lastInputTick  = 0
+        entRecUtils.sv_lastInputTick  = 0
         return None
     else:
         return 0.0001
-
-
-
-
-
-
-def EntRecReceiveData(lastInputTick: int):
-
-    if lastInputTick != entRecIPC.INPUTtickCount:
-        if entRecIPC.INPUTtickCount == 1:
-
-            EntRecUpdateEntList()
-
-        EntRecUpdateEntities()
-
-    
-
-
-
-
-
-
-def EntRecTransferData(lastOutputTick: int):
-    if lastOutputTick != entRecIPC.OUTPUTtickCount:
-        pass
         
 
     
 
 
-def EntRecUpdateEntList():
-
+def ApplyEntMetadata():
     receiving_entlist = bpy.context.scene.entrec_props.receiving_entlist
     models_filepath   = bpy.context.scene.entrec_props.models_filepath
     
 
-    receivedMetadata = json.loads(entRecIPC.receivedMetaDataBuffer)
-
-
-    for index, entity_js in enumerate(receivedMetadata["EntList"]):        
+    for index, entity_data in enumerate(entRecBridge.m_filtered_initial_metadata):
 
         if index < len(receiving_entlist):
 
-            if receiving_entlist[index].ent_name == entity_js['ent_name']:
+            if receiving_entlist[index].ent_id == entity_data.ent_id:
                 continue
 
-
         entity = receiving_entlist.add()
+        entity.ent_name = entity_data.ent_name
+        entity.ent_id   = entity_data.ent_id
 
-        entity.ent_name = entity_js['ent_name']
         
-        if entity_js['ent_type'] == int(entrec_utils.ENTREC_TYPES.BASE_ENTITY):
+        
+        if entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.BASE_ENTITY):
 
             entity.ent_type      = "base_entity"
-            entity.ent_modelpath = entity_js['ent_modelpath']
+            entity.ent_modelpath = entity_data.ent_model
 
             # retreives the full path of the folder the MDL file is located in
             model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
@@ -159,7 +187,7 @@ def EntRecUpdateEntList():
             print(model_file)
 
 
-            if bpy.ops.sourceio != None:
+            if bpy.ops.sourceio != None:    
                 bpy.ops.entrec.sourceio_mdl(filepath=model_path, files=[{'name':model_file}])
             else:
                 bpy.ops.mesh.primitive_cube_add()
@@ -170,7 +198,7 @@ def EntRecUpdateEntList():
                             
             entity.ent_blender_object = entModel
 
-        elif entity_js['ent_type'] == int(entrec_utils.ENTREC_TYPES.POINT_CAMERA):
+        elif entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.POINT_CAMERA):
 
             entity.ent_type = "point_camera"
 
@@ -182,10 +210,10 @@ def EntRecUpdateEntList():
 
             entity.ent_blender_object = entCameraObject
         
-        elif entity_js['ent_type'] == int(entrec_utils.ENTREC_TYPES.BASE_SKELETAL):
+        elif entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.BASE_SKELETAL):
 
             entity.ent_type      = "base_skeletal"
-            entity.ent_modelpath = entity_js['ent_modelpath']
+            entity.ent_modelpath = entity_data.ent_model
 
             # retreives the full path of the folder the MDL file is located in
             model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
@@ -194,7 +222,6 @@ def EntRecUpdateEntList():
             # retreives the name of the MDL file itself
             model_file = re.sub(r'.*/', "", entity.ent_modelpath)
             print(model_file)
-
 
             bpy.ops.entrec.sourceio_mdl(filepath=model_path, files=[{'name':model_file}])
 
@@ -219,10 +246,9 @@ def EntRecUpdateEntList():
 
             poseBones = entModel.pose.bones
 
-            for index, bone_js in enumerate(entity_js['bonedata']):
-                entBone  = entity.ent_bonelist.add()
-                entBone.name = bone_js['name']
-                poseBone = poseBones[entBone.name]
+            for bone in poseBones:
+                entBone      = entity.ent_bonelist.add()
+                entBone.name = bone.name
 
 
                 bpy.ops.mesh.primitive_uv_sphere_add(radius=0.2, segments=4, ring_count= 5, align='CURSOR')
@@ -231,48 +257,63 @@ def EntRecUpdateEntList():
                 proxyBone.name = entBone.name
                 entBone.proxy_bone = proxyBone
 
-                rotConstraint = poseBone.constraints.new("COPY_ROTATION")
+                rotConstraint = bone.constraints.new("COPY_ROTATION")
                 rotConstraint.mix_mode = 'REPLACE'
                 rotConstraint.target = proxyBone
 
-                posConstraint = poseBone.constraints.new("COPY_LOCATION")
+                posConstraint = bone.constraints.new("COPY_LOCATION")
                 posConstraint.target = proxyBone
 
                 boneCollection.objects.link(proxyBone)
-
+    
     return None
 
 
 
 
 
-def EntRecUpdateEntities():
+def ApplyEntData():
 
     receiving_entlist    = bpy.context.scene.entrec_props.receiving_entlist
 
-    receivedData = json.loads(entRecIPC.receivedDataBuffer)
-
-    curTickCount = entRecIPC.INPUTtickCount
-
-    for index, entity_js in enumerate(receivedData["EntList"]):
-
-        if len(receiving_entlist) < index:
-            continue
-
-        if receiving_entlist[index].ent_name != entity_js['ent_name']:
-            continue
-
-        entity = receiving_entlist[index]
+    for frame in entRecBridge.m_parsed_recording:
+        print(frame.frame_num)
 
 
-        if entity.ent_type   == 'base_entity':
-            entRecUtils.UpdateBaseEntity(entity_js,   entity.ent_blender_object, curTickCount)
 
-        elif entity.ent_type == 'point_camera':
-            entRecUtils.UpdatePointCamera(entity_js,  entity.ent_blender_object, curTickCount)
+        print("for index, ent_data in enumerate(frame.recorded_entdata):")
+        for index, ent_data in enumerate(frame.recorded_entdata):
 
-        elif entity.ent_type == 'base_skeletal':
-            entRecUtils.UpdateBaseSkeletal(entity_js, entity.ent_blender_object, entity.ent_bonelist, curTickCount)
+            if len(receiving_entlist) < index:
+                print("ApplyEntData: Len is less than index")
+                continue
+            
+
+            entity = None
+
+            for i in range(len(receiving_entlist)):
+                if receiving_entlist[i].ent_id == ent_data.ent_id:
+                    entity = receiving_entlist[i]
+                    continue
+            if entity == None:
+                print(f"ApplyEntData: Could not find ent named {ent_data.ent_name}")
+                continue
+
+            curFrame = ent_data.engine_tick_count - entRecUtils.first_engine_tick
+
+
+
+            if entity.ent_type   == 'base_entity':
+                entRecUtils.UpdateBaseEntity(ent_data,   entity.ent_blender_object, curFrame)
+
+            elif entity.ent_type == 'point_camera':
+                entRecUtils.UpdatePointCamera(ent_data,  entity.ent_blender_object, curFrame)
+
+            elif entity.ent_type == 'base_skeletal':
+                entRecUtils.UpdateBaseSkeletal(ent_data, entity.ent_blender_object, entity.ent_bonelist, curFrame)
+
+        for event in frame.recorded_events:
+            pass
 
     return None
 

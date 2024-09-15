@@ -45,7 +45,7 @@ class ENTREC_OT_MDLImport(bpy.types.Operator, ModelOptions):
 
     def execute(self, context):
 
-        self.scale = 0.05245901639
+        self.scale = context.scene.entrec_props.scale_factor
 
         if Path(self.filepath).is_file():
             directory = Path(self.filepath).parent.resolve()
