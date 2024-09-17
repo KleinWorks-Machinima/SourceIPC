@@ -27,6 +27,17 @@ class ENTREC_TYPES(enum.IntEnum):
     BASE_SKELETAL = 0xF02
 
 
+class ENTREC_EVENT(enum.IntEnum):
+
+	ENT_CREATED    = 0xE01
+	ENT_BROKEN     = 0xE02
+	ENT_DELETED    = 0xE03
+
+	EFFECT_CREATED = 0xE04
+
+	SOUND_CREATED  = 0xE05
+
+
 
 class EntRecUtils():
 
@@ -125,6 +136,7 @@ class EntRecUtils():
             bone.rotation_quaternion.x = boneQuat.x
             bone.rotation_quaternion.y = boneQuat.y
             bone.rotation_quaternion.z = boneQuat.z
+        
 
 
 

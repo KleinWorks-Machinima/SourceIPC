@@ -111,7 +111,9 @@ def EntRecMainLoop():
             entRecBridge.FilterParsedMessages()
             
             print("ApplyEntMetadata")
-            ApplyEntMetadata()
+            for entity_metadata in entRecBridge.m_filtered_initial_metadata:
+                ApplyEntMetadata(entity_metadata)
+            
             print("ApplyEntData")
             ApplyEntData()
 
@@ -155,118 +157,119 @@ def EntRecMainLoop():
     
 
 
-def ApplyEntMetadata():
+def ApplyEntMetadata(entity_data):
+
+
     receiving_entlist = bpy.context.scene.entrec_props.receiving_entlist
     models_filepath   = bpy.context.scene.entrec_props.models_filepath
-    
 
-    for index, entity_data in enumerate(entRecBridge.m_filtered_initial_metadata):
+    for ent in receiving_entlist:
 
-        if index < len(receiving_entlist):
+        if ent.ent_id == entity_data.ent_id:
+            return None
 
-            if receiving_entlist[index].ent_id == entity_data.ent_id:
-                continue
-
-        entity = receiving_entlist.add()
-        entity.ent_name = entity_data.ent_name
-        entity.ent_id   = entity_data.ent_id
+    entity = receiving_entlist.add()
+    entity.ent_name = entity_data.ent_name
+    entity.ent_id   = entity_data.ent_id
 
         
         
-        if entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.BASE_ENTITY):
+    if entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.BASE_ENTITY):
 
-            entity.ent_type      = "base_entity"
-            entity.ent_modelpath = entity_data.ent_model
+        entity.ent_type      = "base_entity"
+        entity.ent_modelpath = entity_data.ent_model
 
-            # retreives the full path of the folder the MDL file is located in
-            model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
-            print(model_path)
+        # retreives the full path of the folder the MDL file is located in
+        model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
+        print(model_path)
 
-            # retreives the name of the MDL file itself
-            model_file = re.sub(r'.*/', "", entity.ent_modelpath)
-            print(model_file)
+        # retreives the name of the MDL file itself
+        model_file = re.sub(r'.*/', "", entity.ent_modelpath)
+        print(model_file)
 
 
-            if bpy.ops.sourceio != None:    
-                bpy.ops.entrec.sourceio_mdl(filepath=model_path, files=[{'name':model_file}])
-            else:
-                bpy.ops.mesh.primitive_cube_add()
-
-            entModel = bpy.context.view_layer.objects.active
-
-            entModel.name = entity.ent_name
-                            
-            entity.ent_blender_object = entModel
-
-        elif entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.POINT_CAMERA):
-
-            entity.ent_type = "point_camera"
-
-            entCameraData   = bpy.data.cameras.new(name=entity.ent_name)
-            
-            entCameraObject = bpy.data.objects.new(name=entity.ent_name, object_data=entCameraData)
-
-            bpy.context.view_layer.active_layer_collection.collection.objects.link(entCameraObject)
-
-            entity.ent_blender_object = entCameraObject
-        
-        elif entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.BASE_SKELETAL):
-
-            entity.ent_type      = "base_skeletal"
-            entity.ent_modelpath = entity_data.ent_model
-
-            # retreives the full path of the folder the MDL file is located in
-            model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
-            print(model_path)
-
-            # retreives the name of the MDL file itself
-            model_file = re.sub(r'.*/', "", entity.ent_modelpath)
-            print(model_file)
-
+        if bpy.ops.sourceio != None:    
             bpy.ops.entrec.sourceio_mdl(filepath=model_path, files=[{'name':model_file}])
+        else:
+            bpy.ops.mesh.primitive_cube_add()
 
-            entModel = bpy.context.view_layer.objects.active.find_armature()
+        entModel = bpy.context.view_layer.objects.active
 
-            entModel.name = entity.ent_name
+        entModel.name = entity.ent_name
                             
-            entity.ent_blender_object = entModel
+        entity.ent_blender_object = entModel
 
-            skelCollection = bpy.data.collections.new(f"{entity.ent_name}")
+    elif entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.POINT_CAMERA):
 
-            skelCollection.objects.link(bpy.context.view_layer.objects.active)
-            skelCollection.objects.link(entModel)
-            bpy.context.scene.collection.objects.unlink(bpy.context.view_layer.objects.active)
-            bpy.context.scene.collection.objects.unlink(entModel)
+        entity.ent_type = "point_camera"
+
+        entCameraData   = bpy.data.cameras.new(name=entity.ent_name)
+            
+        entCameraObject = bpy.data.objects.new(name=entity.ent_name, object_data=entCameraData)
+
+        bpy.context.view_layer.active_layer_collection.collection.objects.link(entCameraObject)
+
+        entity.ent_blender_object = entCameraObject
+        
+    elif entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.BASE_SKELETAL):
+
+        entity.ent_type      = "base_skeletal"
+        entity.ent_modelpath = entity_data.ent_model
+
+        # retreives the full path of the folder the MDL file is located in
+        model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
+        print(model_path)
+
+        # retreives the name of the MDL file itself
+        model_file = re.sub(r'.*/', "", entity.ent_modelpath)
+        print(model_file)
+
+        bpy.ops.entrec.sourceio_mdl(filepath=model_path, files=[{'name':model_file}])
+
+        entModel = bpy.context.view_layer.objects.active.find_armature()
+
+        entModel.name = entity.ent_name
+                            
+        entity.ent_blender_object = entModel
+
+        skelCollection = bpy.data.collections.new(f"{entity.ent_name}")
+
+        skelCollection.objects.link(bpy.context.view_layer.objects.active)
+        skelCollection.objects.link(entModel)
+        bpy.context.scene.collection.objects.unlink(bpy.context.view_layer.objects.active)
+        bpy.context.scene.collection.objects.unlink(entModel)
 
 
-            boneCollection = bpy.data.collections.new(f"{entity.ent_name} BONES")
+        boneCollection = bpy.data.collections.new(f"{entity.ent_name} BONES")
 
-            bpy.context.scene.collection.children.link(skelCollection)
-            bpy.context.scene.collection.children.link(boneCollection)
+        bpy.context.scene.collection.children.link(skelCollection)
+        bpy.context.scene.collection.children.link(boneCollection)
 
-            poseBones = entModel.pose.bones
+        poseBones = entModel.pose.bones
 
-            for bone in poseBones:
-                entBone      = entity.ent_bonelist.add()
-                entBone.name = bone.name
+        for bone in poseBones:
+            entBone      = entity.ent_bonelist.add()
+            entBone.name = bone.name
 
 
-                bpy.ops.mesh.primitive_uv_sphere_add(radius=0.2, segments=4, ring_count= 5, align='CURSOR')
-                proxyBone = bpy.context.view_layer.objects.active
-                bpy.context.scene.collection.objects.unlink(proxyBone)
-                proxyBone.name = entBone.name
-                entBone.proxy_bone = proxyBone
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=0.2, segments=4, ring_count= 5, align='CURSOR')
+            proxyBone = bpy.context.view_layer.objects.active
+            bpy.context.scene.collection.objects.unlink(proxyBone)
+            proxyBone.name = entBone.name
+            entBone.proxy_bone = proxyBone
 
-                rotConstraint = bone.constraints.new("COPY_ROTATION")
-                rotConstraint.mix_mode = 'REPLACE'
-                rotConstraint.target = proxyBone
+            rotConstraint = bone.constraints.new("COPY_ROTATION")
+            rotConstraint.mix_mode = 'REPLACE'
+            rotConstraint.target = proxyBone
 
-                posConstraint = bone.constraints.new("COPY_LOCATION")
-                posConstraint.target = proxyBone
+            posConstraint = bone.constraints.new("COPY_LOCATION")
+            posConstraint.target = proxyBone
 
-                boneCollection.objects.link(proxyBone)
-    
+            boneCollection.objects.link(proxyBone)
+
     return None
+    
+
 
 
 
@@ -312,8 +315,56 @@ def ApplyEntData():
             elif entity.ent_type == 'base_skeletal':
                 entRecUtils.UpdateBaseSkeletal(ent_data, entity.ent_blender_object, entity.ent_bonelist, curFrame)
 
+        print("for event in frame.recorded_events:")
         for event in frame.recorded_events:
-            pass
+            print(f"processing event of type {event.event_type}...")
+
+            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_CREATED:
+                ApplyEntMetadata(event.ent_metadata)
+
+            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_BROKEN:
+                pass
+
+            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_DELETED:
+                for ent in receiving_entlist:
+                    if event.ent_id == ent.ent_id:
+                        entObject = ent.ent_blender_object
+
+                        entObject.keyframe_insert(data_path="hide_render", frame=curFrame)
+                        entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame)
+
+                        entObject.hide_render   = True
+                        entObject.hide_viewport = True
+
+                        continue
+                #print(f"ERROR when parsing ENT_DELETED event!! Did not find entity with ID [{event.ent_id}]!")
+            
+            if event.event_type == int(entrec_utils.ENTREC_EVENT.SOUND_CREATED):
+                vec = event.sound_origin['0']
+
+                speakerPosition = (entrec_utils.HammerUnitToBlenderUnit(vec.x),
+                                   entrec_utils.HammerUnitToBlenderUnit(vec.y),
+                                   entrec_utils.HammerUnitToBlenderUnit(vec.z))
+                
+                bpy.ops.object.speaker_add(location=speakerPosition)
+
+                soundEmitter             = bpy.context.view_layer.objects.active
+                soundEmitter.name        = re.sub(r'.*/', "", event.sound_name) + f"_{event.ent_id}"
+
+                sounds_folder = bpy.context.scene.entrec_props.models_filepath + "sound\\"
+
+                sound_path  = sounds_folder + event.sound_name.replace("/", "\\")
+
+                bpy.ops.sound.open_mono(filepath=sound_path, relative_path=False)
+
+                soundEmitter.data.sound  = bpy.data.sounds[re.sub(r'.*/', "", event.sound_name)]
+                frameStart = soundEmitter.animation_data.nla_tracks[0].strips[0].frame_start
+                frameEnd   = soundEmitter.animation_data.nla_tracks[0].strips[0].frame_end
+
+                frameStart = event.engine_tick_count - entRecUtils.first_engine_tick
+                frameEnd   = frameStart + 5
+
+
 
     return None
 

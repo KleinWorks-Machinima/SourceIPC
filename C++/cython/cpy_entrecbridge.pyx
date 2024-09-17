@@ -140,6 +140,11 @@ cdef class PyParsedEntEvent_t:
 
     # Attribute access
     @property
+    def engine_tick_count(self):
+        return self.m_parsed_event.engine_tick_count
+
+    # Attribute access
+    @property
     def ent_id(self):
         return self.m_parsed_event.ent_id
 
@@ -157,6 +162,50 @@ cdef class PyParsedEntEvent_t:
         
         return pyMetadata
 
+    # Attribute access
+    @property
+    def sound_volume(self):
+        return self.m_parsed_event.sound_volume
+
+    # Attribute access
+    @property
+    def sound_pitch(self):
+        return self.m_parsed_event.sound_pitch
+
+    # Attribute access
+    @property
+    def sound_time(self):
+        return self.m_parsed_event.sound_time
+
+    # Attribute access
+    @property
+    def sound_name(self):
+        return str(self.m_parsed_event.sound_name, "UTF-8")
+
+    # Attribute access
+    @property
+    def sound_origin(self):
+
+        cdef c_Vector_t c_vec = self.m_parsed_event.sound_origin
+        pyVec = PyVector_t()
+        c_vec.name = "0"
+        pyVec.m_vec = c_vec
+        
+        return pyVec.Get()
+
+    # Attribute access
+    @property
+    def sound_origins(self):
+        pos_list = {}
+
+        cdef c_Vector_t c_vec
+        for c_vec in self.m_parsed_event.sound_origins:
+            pyVec = PyVector_t()
+            pyVec.m_vec = c_vec
+
+            pos_list.update(pyVec.Get())
+        
+        return pos_list
 
 
 

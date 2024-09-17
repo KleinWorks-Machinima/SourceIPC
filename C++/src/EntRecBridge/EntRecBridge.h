@@ -18,6 +18,18 @@
 #include "rapidjson/Writer.h"
 
 
+const enum class ENTREC_EVENT : int
+{
+	ENT_CREATED = 0xE01,
+	ENT_BROKEN = 0xE02,
+	ENT_DELETED = 0xE03,
+
+	EFFECT_CREATED = 0xE04,
+
+	SOUND_CREATED = 0xE05,
+};
+
+
 struct Vector_t { char* name; float x; float y; float z; };
 
 struct Quaternion_t { char* name; float w; float x; float y; float z; };
@@ -78,13 +90,21 @@ public:
 // or entity becoming un-parented (ex. ent1 dies, so ent1's weapon becomes unparented).
 struct ParsedEntEvent_t
 {
-	int					event_type;
-	int					ent_id;
-	ParsedEntMetaData_t	ent_metadata;
+	int					 engine_tick_count;
+	int					 event_type;
+	int					 ent_id;
+	ParsedEntMetaData_t	 ent_metadata;
+
+	int					 sound_volume;
+	int					 sound_pitch;
+	float				 sound_time;
+	char*				 sound_name;
+	Vector_t			 sound_origin;
+	std::list<Vector_t>  sound_origins;
 
 public:
 
-	static ParsedEntEvent_t ParseFromJson(rapidjson::Value ent_event_js);
+	static ParsedEntEvent_t ParseFromJson(rapidjson::Value ent_event_js, int engineTickCount);
 };
 
 

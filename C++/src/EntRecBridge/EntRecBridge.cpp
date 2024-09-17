@@ -20,22 +20,25 @@ RawMsg_t::RawMsg_t(char* msg_str, int frameNum, int engineTickCount)
 
 
 	// convert the entity data document into a string
-	rapidjson::StringBuffer strBuffer;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(strBuffer);
-	msg_js["ent_data"].Accept(writer);
+	rapidjson::StringBuffer entDataStrBuffer;
+	rapidjson::Writer<rapidjson::StringBuffer> entDataWriter(entDataStrBuffer);
+	msg_js["ent_data"].Accept(entDataWriter);
 
-	ent_data = new char[strBuffer.GetSize() + 1];
+	ent_data = new char[entDataStrBuffer.GetSize() + 1];
 
-	strcpy_s(ent_data, strBuffer.GetSize() + 1, strBuffer.GetString());
+	strcpy_s(ent_data, entDataStrBuffer.GetSize() + 1, entDataStrBuffer.GetString());
 
 	if (msg_js.HasMember("ent_events")) {
 		has_events = true;
 
-		msg_js["ent_events"].Accept(writer);
+		rapidjson::StringBuffer entEventsStrBuffer;
+		rapidjson::Writer<rapidjson::StringBuffer> entEventsWriter(entEventsStrBuffer);
+		msg_js["ent_events"].Accept(entEventsWriter);
 
-		ent_events = new char[strBuffer.GetSize() + 1];
+		ent_events = new char[entEventsStrBuffer.GetSize() + 1];
 
-		strcpy_s(ent_events, strBuffer.GetSize() + 1, strBuffer.GetString());
+		strcpy_s(ent_events, entEventsStrBuffer.GetSize() + 1, entEventsStrBuffer.GetString());
+		printf("RawMsg_t: ent_events = %s.\n", ent_events);
 	}
 	else
 		has_events = false;
@@ -124,13 +127,51 @@ ParsedEntMetaData_t ParsedEntMetaData_t::ParseFromJson(rapidjson::Value ent_meta
 
 
 
-ParsedEntEvent_t ParsedEntEvent_t::ParseFromJson(rapidjson::Value ent_event_js)
+ParsedEntEvent_t ParsedEntEvent_t::ParseFromJson(rapidjson::Value ent_event_js, int engineTickCount)
 {
 
 	ParsedEntEvent_t parsedEvent;
 
-	parsedEvent.event_type = ent_event_js["event_type"].GetInt();
-	parsedEvent.ent_id     = ent_event_js["ent_id"].GetInt();
+	parsedEvent.event_type		  = ent_event_js["event_type"].GetInt();
+	parsedEvent.ent_id			  = ent_event_js["ent_id"].GetInt();
+	parsedEvent.engine_tick_count = engineTickCount;
+
+
+	if (parsedEvent.event_type == static_cast<int>(ENTREC_EVENT::ENT_CREATED)) {
+
+	}
+
+	if (parsedEvent.event_type == static_cast<int>(ENTREC_EVENT::ENT_DELETED)) {
+
+	}
+
+	if (parsedEvent.event_type == static_cast<int>(ENTREC_EVENT::SOUND_CREATED)) {
+
+		parsedEvent.sound_name = new char[strlen(ent_event_js["sound_name"].GetString() + 1)];
+		strcpy_s(parsedEvent.sound_name, strlen(ent_event_js["sound_name"].GetString()) + 1, ent_event_js["sound_name"].GetString());
+
+		parsedEvent.sound_volume = ent_event_js["sound_volume"].GetInt();
+		parsedEvent.sound_pitch  = ent_event_js["sound_pitch"].GetInt();
+		parsedEvent.sound_time   = ent_event_js["sound_time"].GetFloat();
+
+		parsedEvent.sound_origin.x = ent_event_js["sound_origin"].GetObjectW()["x"].GetFloat();
+		parsedEvent.sound_origin.y = ent_event_js["sound_origin"].GetObjectW()["y"].GetFloat();
+		parsedEvent.sound_origin.z = ent_event_js["sound_origin"].GetObjectW()["z"].GetFloat();
+
+		for (auto& vec_js : ent_event_js["sound_origins"].GetObjectW()) {
+			Vector_t vec;
+
+			vec.x = vec_js.value["x"].GetFloat();
+			vec.y = vec_js.value["y"].GetFloat();
+			vec.z = vec_js.value["z"].GetFloat();
+
+			vec.name = new char[strlen(vec_js.name.GetString()) + 1];
+			strcpy_s(vec.name, strlen(vec_js.name.GetString()) + 1, vec_js.name.GetString());
+
+			parsedEvent.sound_origins.push_back(vec);
+		}
+	}
+
 
 
 	// if the event contains metadata, parse it
@@ -275,10 +316,10 @@ void EntRecBridge::ParseRawMsgData()
 
 		raw_events_js.SetObject();
 
-		raw_events_js.AddMember("ent_events", raw_events_js.Parse(raw_msg.ent_events), raw_events_js.GetAllocator());
+		raw_events_js.Parse(raw_msg.ent_events);
 
 		for (auto& event_js : raw_events_js.GetObjectW())
-			m_cl_parsed_events.push_back(ParsedEntEvent_t::ParseFromJson(event_js.value.GetObjectW()));
+			m_cl_parsed_events.push_back(ParsedEntEvent_t::ParseFromJson(event_js.value.GetObjectW(), raw_msg.tick_count));
 
 
 	}
@@ -306,10 +347,10 @@ void EntRecBridge::ParseRawMsgData()
 
 		raw_events_js.SetObject();
 
-		raw_events_js.AddMember("ent_events", raw_events_js.Parse(raw_msg.ent_events), raw_events_js.GetAllocator());
+		raw_events_js.Parse(raw_msg.ent_events);
 
 		for (auto& event_js : raw_events_js.GetObjectW())
-			m_sv_parsed_events.push_back(ParsedEntEvent_t::ParseFromJson(event_js.value.GetObjectW()));
+			m_sv_parsed_events.push_back(ParsedEntEvent_t::ParseFromJson(event_js.value.GetObjectW(), raw_msg.tick_count));
 	}
 
 
@@ -333,6 +374,9 @@ void EntRecBridge::FilterParsedMessages()
 	auto cl_data = m_cl_parsed_data.begin();
 	auto sv_data = m_sv_parsed_data.begin();
 
+	auto cl_events = m_cl_parsed_events.begin();
+	auto sv_events = m_sv_parsed_events.begin();
+
 	for (; cl_data != m_cl_parsed_data.end() && sv_data != m_sv_parsed_data.end(); cl_data++, sv_data++, frameCount++) {
 		RecordedFrame_t recordedFrame;
 
@@ -342,6 +386,30 @@ void EntRecBridge::FilterParsedMessages()
 		recordedFrame.frame_num = frameCount;
 
 		m_parsed_recording.push_back(recordedFrame);
+	}
+
+	frameCount = 0;
+
+	for (; sv_events != m_sv_parsed_events.end(); sv_events++, frameCount++) {
+		RecordedFrame_t* recordedFrame;
+
+		if (frameCount < m_parsed_recording.size()) {
+			auto frameRef = m_parsed_recording.begin();
+			std::advance(frameRef, frameCount);
+			recordedFrame = &*frameRef;
+
+			recordedFrame->recorded_events.push_back(*sv_events);
+		}
+		else {
+			recordedFrame = new RecordedFrame_t();
+
+
+			recordedFrame->recorded_events.push_back(*sv_events);
+
+			recordedFrame->frame_num = frameCount;
+
+			m_parsed_recording.push_back(*recordedFrame);
+		}
 	}
 }
 

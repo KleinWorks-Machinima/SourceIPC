@@ -41,9 +41,16 @@ cdef extern from "../src/EntRecBridge/EntRecBridge.h":
 
     cdef cppclass ParsedEntEvent_t:
         ParsedEntEvent_t()
+        int                 engine_tick_count
         int                 event_type
         int                 ent_id
         ParsedEntMetaData_t ent_metadata
+        int                 sound_volume
+        int                 sound_pitch
+        float               sound_time
+        char*               sound_name
+        Vector_t            sound_origin
+        list[Vector_t]      sound_origins
 
     cdef cppclass RecordedFrame_t:
         RecordedFrame_t()
