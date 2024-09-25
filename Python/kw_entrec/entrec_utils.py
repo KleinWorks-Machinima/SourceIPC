@@ -55,13 +55,9 @@ class EntRecUtils():
         vecOrigin  = ent_data.ent_pos['0']
         quatAngles = ent_data.ent_rot['0']
 
-        entityObject.keyframe_insert(data_path="location", frame=tickCount)
-
         entityObject.location[0] = HammerUnitToBlenderUnit(vecOrigin.x)
         entityObject.location[1] = HammerUnitToBlenderUnit(vecOrigin.y)
         entityObject.location[2] = HammerUnitToBlenderUnit(vecOrigin.z)
-
-        entityObject.keyframe_insert(data_path="rotation_quaternion", frame=tickCount)
 
         if entityObject.rotation_mode != 'QUATERNION':
             entityObject.rotation_mode = 'QUATERNION'
@@ -70,6 +66,9 @@ class EntRecUtils():
         entityObject.rotation_quaternion.x = quatAngles.x
         entityObject.rotation_quaternion.y = quatAngles.y
         entityObject.rotation_quaternion.z = quatAngles.z
+
+        entityObject.keyframe_insert(data_path="location", frame=tickCount)
+        entityObject.keyframe_insert(data_path="rotation_quaternion", frame=tickCount)
 
 
     def UpdatePointCamera(self, ent_data, entityObject, tickCount: int):
@@ -89,13 +88,9 @@ class EntRecUtils():
         eulerAngles.z = eulerAngles.y
         
 
-        entityObject.keyframe_insert(data_path="location", frame=tickCount)
-
         entityObject.location[0] = HammerUnitToBlenderUnit(vecOrigin.x)
         entityObject.location[1] = HammerUnitToBlenderUnit(vecOrigin.y)
         entityObject.location[2] = HammerUnitToBlenderUnit(vecOrigin.z)
-
-        entityObject.keyframe_insert(data_path="rotation_euler", frame=tickCount)
 
         if entityObject.rotation_mode != 'XYZ':
             entityObject.rotation_mode = 'XYZ'
@@ -103,6 +98,9 @@ class EntRecUtils():
         entityObject.rotation_euler.x = eulerAngles.x
         entityObject.rotation_euler.y = eulerAngles.y
         entityObject.rotation_euler.z = eulerAngles.z
+
+        entityObject.keyframe_insert(data_path="rotation_euler", frame=tickCount)
+        entityObject.keyframe_insert(data_path="location", frame=tickCount)
 
         
 
@@ -115,19 +113,17 @@ class EntRecUtils():
 
             bone = entBone.proxy_bone
 
-            bone.keyframe_insert(data_path="location", frame=tickCount)
-
             bone.location[0] = HammerUnitToBlenderUnit(boneVec.x)
             bone.location[1] = HammerUnitToBlenderUnit(boneVec.y)
             bone.location[2] = HammerUnitToBlenderUnit(boneVec.z)
+
+            bone.keyframe_insert(data_path="location", frame=tickCount)
 
         for name, boneQuat in ent_data.ent_rot.items():
 
             entBone = entBoneList[name]
 
             bone = entBone.proxy_bone
-
-            bone.keyframe_insert(data_path="rotation_quaternion", frame=tickCount)
 
             if bone.rotation_mode != 'QUATERNION':
                 bone.rotation_mode = 'QUATERNION'
@@ -136,6 +132,8 @@ class EntRecUtils():
             bone.rotation_quaternion.x = boneQuat.x
             bone.rotation_quaternion.y = boneQuat.y
             bone.rotation_quaternion.z = boneQuat.z
+
+            bone.keyframe_insert(data_path="rotation_quaternion", frame=tickCount)
         
 
 

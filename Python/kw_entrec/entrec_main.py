@@ -319,6 +319,8 @@ def ApplyEntData():
         for event in frame.recorded_events:
             print(f"processing event of type {event.event_type}...")
 
+            curFrame = event.tick_count - entRecUtils.first_engine_tick
+
             if event.event_type == entrec_utils.ENTREC_EVENT.ENT_CREATED:
                 ApplyEntMetadata(event.ent_metadata)
 
@@ -330,14 +332,19 @@ def ApplyEntData():
                     if event.ent_id == ent.ent_id:
                         entObject = ent.ent_blender_object
 
-                        entObject.keyframe_insert(data_path="hide_render", frame=curFrame)
-                        entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame)
+                        entObject.hide_render   = False
+                        entObject.hide_viewport = False
+
+                        entObject.keyframe_insert(data_path="hide_render", frame=curFrame - 1)
+                        entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame - 1)
 
                         entObject.hide_render   = True
                         entObject.hide_viewport = True
 
-                        continue
-                #print(f"ERROR when parsing ENT_DELETED event!! Did not find entity with ID [{event.ent_id}]!")
+                        entObject.keyframe_insert(data_path="hide_render", frame=curFrame)
+                        entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame)
+
+                        
             
             if event.event_type == int(entrec_utils.ENTREC_EVENT.SOUND_CREATED):
                 vec = event.sound_origin['0']
@@ -358,11 +365,13 @@ def ApplyEntData():
                 bpy.ops.sound.open_mono(filepath=sound_path, relative_path=False)
 
                 soundEmitter.data.sound  = bpy.data.sounds[re.sub(r'.*/', "", event.sound_name)]
-                frameStart = soundEmitter.animation_data.nla_tracks[0].strips[0].frame_start
-                frameEnd   = soundEmitter.animation_data.nla_tracks[0].strips[0].frame_end
+                
+                soundEmitter.animation_data.nla_tracks[0].strips[0].frame_start = curFrame
+                soundEmitter.animation_data.nla_tracks[0].strips[0].frame_end   = curFrame + 10
 
-                frameStart = event.engine_tick_count - entRecUtils.first_engine_tick
-                frameEnd   = frameStart + 5
+                soundEmitter.data.muted = True
+                soundEmitter.data.muted = False
+
 
 
 

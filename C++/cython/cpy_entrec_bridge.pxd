@@ -2,6 +2,7 @@
 
 
 from libcpp.list   cimport list
+from libcpp.vector cimport vector
 from libcpp.string cimport string
 
 
@@ -41,9 +42,9 @@ cdef extern from "../src/EntRecBridge/EntRecBridge.h":
 
     cdef cppclass ParsedEntEvent_t:
         ParsedEntEvent_t()
-        int                 engine_tick_count
         int                 event_type
         int                 ent_id
+        int                 tick_count
         ParsedEntMetaData_t ent_metadata
         int                 sound_volume
         int                 sound_pitch
@@ -63,7 +64,7 @@ cdef extern from "../src/EntRecBridge/EntRecBridge.h":
         int                        m_sv_lasttick
         int                        m_cl_lasttick
         int                        mb_record
-        list[RecordedFrame_t]      m_parsed_recording
+        vector[RecordedFrame_t]    m_parsed_recording
         list[ParsedEntMetaData_t]  m_filtered_initial_metadata
         int                        ClientRecv(char* recvdMsg, int msgNum, int engineTickCount)
         int                        ServerRecv(char* recvdMsg, int msgNum, int engineTickCount)

@@ -140,13 +140,13 @@ cdef class PyParsedEntEvent_t:
 
     # Attribute access
     @property
-    def engine_tick_count(self):
-        return self.m_parsed_event.engine_tick_count
+    def ent_id(self):
+        return self.m_parsed_event.ent_id
 
     # Attribute access
     @property
-    def ent_id(self):
-        return self.m_parsed_event.ent_id
+    def tick_count(self):
+        return self.m_parsed_event.tick_count
 
     # Attribute access
     @property

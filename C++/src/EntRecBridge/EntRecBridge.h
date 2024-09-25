@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <list>
+#include <vector>
 #include <math.h>
 #include <string>
 #include <exception>
@@ -90,9 +91,9 @@ public:
 // or entity becoming un-parented (ex. ent1 dies, so ent1's weapon becomes unparented).
 struct ParsedEntEvent_t
 {
-	int					 engine_tick_count;
 	int					 event_type;
 	int					 ent_id;
+	int					 tick_count;
 	ParsedEntMetaData_t	 ent_metadata;
 
 	int					 sound_volume;
@@ -104,7 +105,7 @@ struct ParsedEntEvent_t
 
 public:
 
-	static ParsedEntEvent_t ParseFromJson(rapidjson::Value ent_event_js, int engineTickCount);
+	static ParsedEntEvent_t ParseFromJson(rapidjson::Value ent_event_js);
 };
 
 
@@ -139,7 +140,7 @@ public:
 
 	// Populated by recorded frames during a recording.
 	// When a new recording starts, this list is cleared of its contents.
-	std::list<RecordedFrame_t>		m_parsed_recording;
+	std::vector<RecordedFrame_t>		m_parsed_recording;
 
 	// The metadata of every entity in the latest recording.
 	// When a new recording starts, this list is cleared of its contents.

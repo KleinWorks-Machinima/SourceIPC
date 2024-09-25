@@ -127,14 +127,14 @@ ParsedEntMetaData_t ParsedEntMetaData_t::ParseFromJson(rapidjson::Value ent_meta
 
 
 
-ParsedEntEvent_t ParsedEntEvent_t::ParseFromJson(rapidjson::Value ent_event_js, int engineTickCount)
+ParsedEntEvent_t ParsedEntEvent_t::ParseFromJson(rapidjson::Value ent_event_js)
 {
 
 	ParsedEntEvent_t parsedEvent;
 
-	parsedEvent.event_type		  = ent_event_js["event_type"].GetInt();
-	parsedEvent.ent_id			  = ent_event_js["ent_id"].GetInt();
-	parsedEvent.engine_tick_count = engineTickCount;
+	parsedEvent.event_type= ent_event_js["event_type"].GetInt();
+	parsedEvent.ent_id	   = ent_event_js["ent_id"].GetInt();
+	parsedEvent.tick_count = ent_event_js["tick_count"].GetInt();
 
 
 	if (parsedEvent.event_type == static_cast<int>(ENTREC_EVENT::ENT_CREATED)) {
@@ -230,7 +230,6 @@ int EntRecBridge::ServerRecv(char* recvdMsg, int msgNum, int engineTickCount)
 
 int EntRecBridge::ClientInitialMetadata(char* initialMetadata)
 {
-	printf("cl_metadata = [%s].\n", initialMetadata);
 	m_cl_raw_initial_metadata = new char[strlen(initialMetadata) + 1];
 
 	strcpy_s(m_cl_raw_initial_metadata, strlen(initialMetadata) + 1, initialMetadata);
@@ -243,7 +242,6 @@ int EntRecBridge::ClientInitialMetadata(char* initialMetadata)
 
 int EntRecBridge::ServerInitialMetadata(char* initialMetadata)
 {
-	printf("sv_metadata = [%s].\n", initialMetadata);
 	m_sv_raw_initial_metadata = new char[strlen(initialMetadata) + 1];
 
 	strcpy_s(m_sv_raw_initial_metadata, strlen(initialMetadata) + 1, initialMetadata);
@@ -319,7 +317,7 @@ void EntRecBridge::ParseRawMsgData()
 		raw_events_js.Parse(raw_msg.ent_events);
 
 		for (auto& event_js : raw_events_js.GetObjectW())
-			m_cl_parsed_events.push_back(ParsedEntEvent_t::ParseFromJson(event_js.value.GetObjectW(), raw_msg.tick_count));
+			m_cl_parsed_events.push_back(ParsedEntEvent_t::ParseFromJson(event_js.value.GetObjectW()));
 
 
 	}
@@ -350,7 +348,7 @@ void EntRecBridge::ParseRawMsgData()
 		raw_events_js.Parse(raw_msg.ent_events);
 
 		for (auto& event_js : raw_events_js.GetObjectW())
-			m_sv_parsed_events.push_back(ParsedEntEvent_t::ParseFromJson(event_js.value.GetObjectW(), raw_msg.tick_count));
+			m_sv_parsed_events.push_back(ParsedEntEvent_t::ParseFromJson(event_js.value.GetObjectW()));
 	}
 
 
@@ -370,45 +368,71 @@ void EntRecBridge::FilterParsedMessages()
 	for (auto& metadata : m_sv_initial_metadata)
 		m_filtered_initial_metadata.push_back(metadata);
 
-	int frameCount = 0;
-	auto cl_data = m_cl_parsed_data.begin();
-	auto sv_data = m_sv_parsed_data.begin();
+	int  cl_frameCount = 0;
+	int  sv_frameCount = 0;
 
-	auto cl_events = m_cl_parsed_events.begin();
-	auto sv_events = m_sv_parsed_events.begin();
-
-	for (; cl_data != m_cl_parsed_data.end() && sv_data != m_sv_parsed_data.end(); cl_data++, sv_data++, frameCount++) {
+	printf("for (; cl_data != m_cl_parsed_data.end(); cl_data++, cl_frameCount++) { \n");
+	for (auto& cl_data : m_cl_parsed_data) {
 		RecordedFrame_t recordedFrame;
 
-		recordedFrame.recorded_entdata.push_back(*cl_data);
-		recordedFrame.recorded_entdata.push_back(*sv_data);
+		recordedFrame.recorded_entdata.push_back(cl_data);
 
-		recordedFrame.frame_num = frameCount;
+		recordedFrame.frame_num = cl_frameCount;
 
 		m_parsed_recording.push_back(recordedFrame);
+
+		cl_frameCount++;
 	}
-
-	frameCount = 0;
-
-	for (; sv_events != m_sv_parsed_events.end(); sv_events++, frameCount++) {
+	printf("for (; sv_data != m_sv_parsed_data.end(); sv_data++, sv_frameCount++) {\n");
+	for (auto& sv_data : m_sv_parsed_data) {
 		RecordedFrame_t* recordedFrame;
 
-		if (frameCount < m_parsed_recording.size()) {
-			auto frameRef = m_parsed_recording.begin();
-			std::advance(frameRef, frameCount);
-			recordedFrame = &*frameRef;
+		if (cl_frameCount > sv_frameCount) {
+			recordedFrame = &m_parsed_recording[sv_frameCount];
 
-			recordedFrame->recorded_events.push_back(*sv_events);
+			recordedFrame->recorded_entdata.push_back(sv_data);
 		}
 		else {
 			recordedFrame = new RecordedFrame_t();
-
-
-			recordedFrame->recorded_events.push_back(*sv_events);
-
-			recordedFrame->frame_num = frameCount;
-
+			recordedFrame->frame_num = sv_frameCount;
+			recordedFrame->recorded_entdata.push_back(sv_data);
 			m_parsed_recording.push_back(*recordedFrame);
+		}
+		sv_frameCount++;
+	}
+
+
+
+	printf("for (auto& sv_event : m_sv_parsed_events) {\n");
+	for (auto& sv_event : m_sv_parsed_events) {
+		RecordedFrame_t* recordedFrame;
+
+		if (sv_frameCount == 0 && cl_frameCount == 0) {
+			recordedFrame = new RecordedFrame_t();
+			recordedFrame->frame_num = 0;
+			recordedFrame->recorded_events.push_back(sv_event);
+			m_parsed_recording.push_back(*recordedFrame);
+		}
+		else {
+			recordedFrame = &m_parsed_recording[0];
+
+			recordedFrame->recorded_events.push_back(sv_event);
+		}
+	}
+
+	for (auto& cl_event : m_cl_parsed_events) {
+		RecordedFrame_t* recordedFrame;
+
+		if (sv_frameCount == 0 && cl_frameCount == 0) {
+			recordedFrame = new RecordedFrame_t();
+			recordedFrame->frame_num = 0;
+			recordedFrame->recorded_events.push_back(cl_event);
+			m_parsed_recording.push_back(*recordedFrame);
+		}
+		else {
+			recordedFrame = &m_parsed_recording[0];
+
+			recordedFrame->recorded_events.push_back(cl_event);
 		}
 	}
 }
