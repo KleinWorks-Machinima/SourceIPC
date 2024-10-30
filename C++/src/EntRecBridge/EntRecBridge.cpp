@@ -368,71 +368,103 @@ void EntRecBridge::FilterParsedMessages()
 	for (auto& metadata : m_sv_initial_metadata)
 		m_filtered_initial_metadata.push_back(metadata);
 
-	int  cl_frameCount = 0;
-	int  sv_frameCount = 0;
+	int cl_startTick = m_cl_parsed_data.front().engine_tick_count;
+	int sv_startTick = m_sv_parsed_data.front().engine_tick_count;
+	printf("cl_startTick = [%d]\n", cl_startTick);
 
-	printf("for (; cl_data != m_cl_parsed_data.end(); cl_data++, cl_frameCount++) { \n");
+	int cl_tick = 0;
+	int sv_tick = 0;
+
+	printf("for (auto& cl_data : m_cl_parsed_data) {\n");
 	for (auto& cl_data : m_cl_parsed_data) {
+		cl_tick = cl_data.engine_tick_count - cl_startTick;
+		printf("cl_tick = [%d]\n", cl_tick);
+
 		RecordedFrame_t recordedFrame;
 
-		recordedFrame.recorded_entdata.push_back(cl_data);
+		printf("if (cl_tick > 0 && cl_tick < m_parsed_recording.size()) {\n");
+		if (cl_tick >= 0 && cl_tick < m_parsed_recording.size()) {
+			recordedFrame = m_parsed_recording[cl_tick];
 
-		recordedFrame.frame_num = cl_frameCount;
+			recordedFrame.recorded_entdata.push_back(cl_data);
 
-		m_parsed_recording.push_back(recordedFrame);
+			recordedFrame.frame_num = cl_tick;
 
-		cl_frameCount++;
-	}
-	printf("for (; sv_data != m_sv_parsed_data.end(); sv_data++, sv_frameCount++) {\n");
-	for (auto& sv_data : m_sv_parsed_data) {
-		RecordedFrame_t* recordedFrame;
-
-		if (cl_frameCount > sv_frameCount) {
-			recordedFrame = &m_parsed_recording[sv_frameCount];
-
-			recordedFrame->recorded_entdata.push_back(sv_data);
+			m_parsed_recording[cl_tick] = recordedFrame;
 		}
 		else {
-			recordedFrame = new RecordedFrame_t();
-			recordedFrame->frame_num = sv_frameCount;
-			recordedFrame->recorded_entdata.push_back(sv_data);
-			m_parsed_recording.push_back(*recordedFrame);
+			printf("else {\n");
+
+			recordedFrame.recorded_entdata.push_back(cl_data);
+
+			recordedFrame.frame_num = cl_tick;
+
+			m_parsed_recording.push_back(recordedFrame);
 		}
-		sv_frameCount++;
+	}
+	printf("for (auto& sv_data : m_sv_parsed_data)\n");
+	for (auto& sv_data : m_sv_parsed_data) {
+		sv_tick = sv_data.engine_tick_count - sv_startTick;
+
+		printf("sv_tick = [%d]\n", sv_tick);
+
+		RecordedFrame_t recordedFrame;
+
+		printf("if (sv_tick > 0 && sv_tick < m_parsed_recording.size()) {\n");
+		if (sv_tick >= 0 && sv_tick < m_parsed_recording.size()) {
+			recordedFrame = m_parsed_recording[sv_tick];
+
+			recordedFrame.recorded_entdata.push_back(sv_data);
+
+			recordedFrame.frame_num = sv_tick;
+
+			m_parsed_recording[sv_tick] = recordedFrame;
+		}
+		else {
+			printf("else {\n");
+
+			recordedFrame.recorded_entdata.push_back(sv_data);
+
+			recordedFrame.frame_num = sv_tick;
+
+			m_parsed_recording.push_back(recordedFrame);
+		}
 	}
 
 
 
 	printf("for (auto& sv_event : m_sv_parsed_events) {\n");
 	for (auto& sv_event : m_sv_parsed_events) {
-		RecordedFrame_t* recordedFrame;
+		RecordedFrame_t recordedFrame;
 
-		if (sv_frameCount == 0 && cl_frameCount == 0) {
-			recordedFrame = new RecordedFrame_t();
-			recordedFrame->frame_num = 0;
-			recordedFrame->recorded_events.push_back(sv_event);
-			m_parsed_recording.push_back(*recordedFrame);
+		printf("if (!m_parsed_recording.empty()) {\n");
+		if (!m_parsed_recording.empty()) {
+			recordedFrame = m_parsed_recording[0];
+			recordedFrame.recorded_events.push_back(sv_event);
+			m_parsed_recording[0] = recordedFrame;
 		}
 		else {
-			recordedFrame = &m_parsed_recording[0];
-
-			recordedFrame->recorded_events.push_back(sv_event);
+			printf("else {\n");
+			recordedFrame.frame_num = 0;
+			recordedFrame.recorded_events.push_back(sv_event);
+			m_parsed_recording.push_back(recordedFrame);
 		}
 	}
 
 	for (auto& cl_event : m_cl_parsed_events) {
-		RecordedFrame_t* recordedFrame;
+		RecordedFrame_t recordedFrame;
 
-		if (sv_frameCount == 0 && cl_frameCount == 0) {
-			recordedFrame = new RecordedFrame_t();
-			recordedFrame->frame_num = 0;
-			recordedFrame->recorded_events.push_back(cl_event);
-			m_parsed_recording.push_back(*recordedFrame);
+		printf("if (!m_parsed_recording.empty()) {\n");
+		if (!m_parsed_recording.empty()) {
+			recordedFrame = m_parsed_recording[0];
+			recordedFrame.recorded_events.push_back(cl_event);
+			m_parsed_recording[0] = recordedFrame;
 		}
 		else {
-			recordedFrame = &m_parsed_recording[0];
-
-			recordedFrame->recorded_events.push_back(cl_event);
+			printf("else {\n");
+			recordedFrame.frame_num = 0;
+			recordedFrame.recorded_events.push_back(cl_event);
+			m_parsed_recording.push_back(recordedFrame);
 		}
 	}
 }

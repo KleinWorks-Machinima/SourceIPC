@@ -27,6 +27,7 @@ class EntRecEntity(bpy.types.PropertyGroup):
     ent_bonelist:  bpy.props.CollectionProperty(type=EntityBone)
 
     ent_blender_object: bpy.props.PointerProperty(type=bpy.types.Object)
+    ent_mesh_object:    bpy.props.PointerProperty(type=bpy.types.Object)
 
 
 class EntRecProperties(bpy.types.PropertyGroup):

@@ -163,18 +163,28 @@ def ApplyEntMetadata(entity_data):
     receiving_entlist = bpy.context.scene.entrec_props.receiving_entlist
     models_filepath   = bpy.context.scene.entrec_props.models_filepath
 
+    scene_collection  = bpy.context.scene.collection
+
     for ent in receiving_entlist:
 
         if ent.ent_id == entity_data.ent_id:
             return None
 
-    entity = receiving_entlist.add()
+    entity          = receiving_entlist.add()
     entity.ent_name = entity_data.ent_name
     entity.ent_id   = entity_data.ent_id
 
         
         
     if entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.BASE_ENTITY):
+
+        propsCollectionIndex = scene_collection.children.find("KW_props")
+        if propsCollectionIndex == -1:
+            propsCollection = bpy.data.collections.new("KW_props")
+
+            scene_collection.children.link(propsCollection)
+        else:
+            propsCollection = scene_collection.children[propsCollectionIndex]
 
         entity.ent_type      = "base_entity"
         entity.ent_modelpath = entity_data.ent_model
@@ -195,11 +205,22 @@ def ApplyEntMetadata(entity_data):
 
         entModel = bpy.context.view_layer.objects.active
 
+        scene_collection.objects.unlink(entModel)
+        propsCollection.objects.link(entModel)
+
         entModel.name = entity.ent_name
                             
         entity.ent_blender_object = entModel
 
     elif entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.POINT_CAMERA):
+
+        camsCollectionIndex = scene_collection.children.find("KW_cameras")
+        if camsCollectionIndex == -1:
+            camsCollection = bpy.data.collections.new("KW_cameras")
+
+            scene_collection.children.link(camsCollection)
+        else:
+            camsCollection = scene_collection.children[camsCollectionIndex]
 
         entity.ent_type = "point_camera"
 
@@ -207,11 +228,19 @@ def ApplyEntMetadata(entity_data):
             
         entCameraObject = bpy.data.objects.new(name=entity.ent_name, object_data=entCameraData)
 
-        bpy.context.view_layer.active_layer_collection.collection.objects.link(entCameraObject)
+        camsCollection.objects.link(entCameraObject)
 
         entity.ent_blender_object = entCameraObject
         
     elif entity_data.ent_type == int(entrec_utils.ENTREC_TYPES.BASE_SKELETAL):
+
+        skelsCollectionIndex = scene_collection.children.find("KW_skeletals")
+        if skelsCollectionIndex == -1:
+            skelsCollection = bpy.data.collections.new("KW_skeletals")
+
+            scene_collection.children.link(skelsCollection)
+        else:
+            skelsCollection = scene_collection.children[skelsCollectionIndex]
 
         entity.ent_type      = "base_skeletal"
         entity.ent_modelpath = entity_data.ent_model
@@ -226,24 +255,29 @@ def ApplyEntMetadata(entity_data):
 
         bpy.ops.entrec.sourceio_mdl(filepath=model_path, files=[{'name':model_file}])
 
+        entMesh = bpy.context.view_layer.objects.active
+
         entModel = bpy.context.view_layer.objects.active.find_armature()
+
+        entity.ent_mesh_object = entMesh
 
         entModel.name = entity.ent_name
                             
         entity.ent_blender_object = entModel
 
-        skelCollection = bpy.data.collections.new(f"{entity.ent_name}")
+        entCollection = bpy.data.collections.new(f"{entity.ent_name}")
 
-        skelCollection.objects.link(bpy.context.view_layer.objects.active)
-        skelCollection.objects.link(entModel)
-        bpy.context.scene.collection.objects.unlink(bpy.context.view_layer.objects.active)
+        entCollection.objects.link(entMesh)
+        entCollection.objects.link(entModel)
+        bpy.context.scene.collection.objects.unlink(entMesh)
         bpy.context.scene.collection.objects.unlink(entModel)
 
 
         boneCollection = bpy.data.collections.new(f"{entity.ent_name} BONES")
 
-        bpy.context.scene.collection.children.link(skelCollection)
-        bpy.context.scene.collection.children.link(boneCollection)
+        entCollection.children.link(boneCollection)
+        skelsCollection.children.link(entCollection)
+        
 
         poseBones = entModel.pose.bones
 
@@ -267,7 +301,7 @@ def ApplyEntMetadata(entity_data):
 
             boneCollection.objects.link(proxyBone)
 
-    return None
+    return entity
     
 
 
@@ -277,13 +311,99 @@ def ApplyEntMetadata(entity_data):
 
 def ApplyEntData():
 
-    receiving_entlist    = bpy.context.scene.entrec_props.receiving_entlist
+    receiving_entlist = bpy.context.scene.entrec_props.receiving_entlist
+
+    scene_collection  = bpy.context.scene.collection
 
     for frame in entRecBridge.m_parsed_recording:
         print(frame.frame_num)
 
 
+        print("for event in frame.recorded_events:")
+        for event in frame.recorded_events:
+            print(f"processing event of type {event.event_type}...")
 
+            curFrame = event.tick_count - entRecUtils.first_engine_tick
+
+            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_CREATED:
+                entity    = ApplyEntMetadata(event.ent_metadata)
+
+                if entity.ent_type == 'base_skeletal':
+                    entObject = entity.ent_mesh_object
+                else:
+                    entObject = entity.ent_blender_object
+
+                entObject.hide_render   = True
+                entObject.hide_viewport = True
+
+                entObject.keyframe_insert(data_path="hide_render", frame=curFrame - 1)
+                entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame - 1)
+
+                entObject.hide_render   = False
+                entObject.hide_viewport = False
+
+                entObject.keyframe_insert(data_path="hide_render", frame=curFrame)
+                entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame)
+                
+
+            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_BROKEN:
+                pass
+
+            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_DELETED:
+                for ent in receiving_entlist:
+                    if event.ent_id == ent.ent_id:
+                        entObject = ent.ent_blender_object
+
+                        entObject.hide_render   = False
+                        entObject.hide_viewport = False
+
+                        entObject.keyframe_insert(data_path="hide_render", frame=curFrame - 1)
+                        entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame - 1)
+
+                        entObject.hide_render   = True
+                        entObject.hide_viewport = True
+
+                        entObject.keyframe_insert(data_path="hide_render", frame=curFrame)
+                        entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame)
+
+                        
+            
+            if event.event_type == int(entrec_utils.ENTREC_EVENT.SOUND_CREATED):
+                
+                soundsCollectionIndex = scene_collection.children.find("KW_sounds")
+                if soundsCollectionIndex == -1:
+                    soundsCollection = bpy.data.collections.new("KW_sounds")
+
+                    scene_collection.children.link(soundsCollection)
+                else:
+                    soundsCollection = scene_collection.children[soundsCollectionIndex]
+                
+                vec = event.sound_origin['0']
+
+                speakerPosition = (entrec_utils.HammerUnitToBlenderUnit(vec.x),
+                                   entrec_utils.HammerUnitToBlenderUnit(vec.y),
+                                   entrec_utils.HammerUnitToBlenderUnit(vec.z))
+                
+                bpy.ops.object.speaker_add(location=speakerPosition)
+
+                soundEmitter      = bpy.context.view_layer.objects.active
+                soundEmitter.name = re.sub(r'.*/', "", event.sound_name) + f"_{event.ent_id}"
+
+                sounds_folder     = bpy.context.scene.entrec_props.models_filepath + "sound\\"
+                sound_path         = sounds_folder + event.sound_name.replace("/", "\\")
+
+                bpy.ops.sound.open_mono(filepath=sound_path, relative_path=False)
+
+                soundEmitter.data.sound  = bpy.data.sounds[re.sub(r'.*/', "", event.sound_name)]
+                
+                soundEmitter.animation_data.nla_tracks[0].strips[0].frame_start = curFrame
+                soundEmitter.animation_data.nla_tracks[0].strips[0].frame_end   = curFrame + 10
+
+                scene_collection.objects.unlink(soundEmitter)
+                soundsCollection.objects.link(soundEmitter)
+
+
+        
         print("for index, ent_data in enumerate(frame.recorded_entdata):")
         for index, ent_data in enumerate(frame.recorded_entdata):
 
@@ -314,63 +434,6 @@ def ApplyEntData():
 
             elif entity.ent_type == 'base_skeletal':
                 entRecUtils.UpdateBaseSkeletal(ent_data, entity.ent_blender_object, entity.ent_bonelist, curFrame)
-
-        print("for event in frame.recorded_events:")
-        for event in frame.recorded_events:
-            print(f"processing event of type {event.event_type}...")
-
-            curFrame = event.tick_count - entRecUtils.first_engine_tick
-
-            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_CREATED:
-                ApplyEntMetadata(event.ent_metadata)
-
-            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_BROKEN:
-                pass
-
-            if event.event_type == entrec_utils.ENTREC_EVENT.ENT_DELETED:
-                for ent in receiving_entlist:
-                    if event.ent_id == ent.ent_id:
-                        entObject = ent.ent_blender_object
-
-                        entObject.hide_render   = False
-                        entObject.hide_viewport = False
-
-                        entObject.keyframe_insert(data_path="hide_render", frame=curFrame - 1)
-                        entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame - 1)
-
-                        entObject.hide_render   = True
-                        entObject.hide_viewport = True
-
-                        entObject.keyframe_insert(data_path="hide_render", frame=curFrame)
-                        entObject.keyframe_insert(data_path="hide_viewport", frame=curFrame)
-
-                        
-            
-            if event.event_type == int(entrec_utils.ENTREC_EVENT.SOUND_CREATED):
-                vec = event.sound_origin['0']
-
-                speakerPosition = (entrec_utils.HammerUnitToBlenderUnit(vec.x),
-                                   entrec_utils.HammerUnitToBlenderUnit(vec.y),
-                                   entrec_utils.HammerUnitToBlenderUnit(vec.z))
-                
-                bpy.ops.object.speaker_add(location=speakerPosition)
-
-                soundEmitter             = bpy.context.view_layer.objects.active
-                soundEmitter.name        = re.sub(r'.*/', "", event.sound_name) + f"_{event.ent_id}"
-
-                sounds_folder = bpy.context.scene.entrec_props.models_filepath + "sound\\"
-
-                sound_path  = sounds_folder + event.sound_name.replace("/", "\\")
-
-                bpy.ops.sound.open_mono(filepath=sound_path, relative_path=False)
-
-                soundEmitter.data.sound  = bpy.data.sounds[re.sub(r'.*/', "", event.sound_name)]
-                
-                soundEmitter.animation_data.nla_tracks[0].strips[0].frame_start = curFrame
-                soundEmitter.animation_data.nla_tracks[0].strips[0].frame_end   = curFrame + 10
-
-                soundEmitter.data.muted = True
-                soundEmitter.data.muted = False
 
 
 
