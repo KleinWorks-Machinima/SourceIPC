@@ -74,7 +74,12 @@ class EntRecUtils():
     def UpdatePointCamera(self, ent_data, entityObject, tickCount: int):
         
         vecOrigin   = ent_data.ent_pos['0']
-        eulerAngles = ent_data.ent_rot['0']
+        quatAngles  = ent_data.ent_rot['0']
+        eulerAngles = mathutils.Euler()
+
+        eulerAngles.x = quatAngles.x
+        eulerAngles.y = quatAngles.y
+        eulerAngles.z = quatAngles.z
 
         eulerAngles.x -= 90
         eulerAngles.y -= 90

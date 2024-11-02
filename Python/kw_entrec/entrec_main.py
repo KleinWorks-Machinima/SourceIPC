@@ -117,10 +117,7 @@ def EntRecMainLoop():
             print("ApplyEntData")
             ApplyEntData()
 
-            print(f"CL first engine tick:  {sv_ipc.firstENGINEtick}")
-            print(f"SV first engine tick: {cl_ipc.firstENGINEtick}")
 
-            print("ClearContents")
             entRecBridge.ClearContents()
 
 
@@ -191,11 +188,9 @@ def ApplyEntMetadata(entity_data):
 
         # retreives the full path of the folder the MDL file is located in
         model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
-        print(model_path)
 
         # retreives the name of the MDL file itself
         model_file = re.sub(r'.*/', "", entity.ent_modelpath)
-        print(model_file)
 
 
         if bpy.ops.sourceio != None:    
@@ -247,11 +242,9 @@ def ApplyEntMetadata(entity_data):
 
         # retreives the full path of the folder the MDL file is located in
         model_path = models_filepath + re.sub(r"\\[^\\]*?\.mdl$", "", entity.ent_modelpath)
-        print(model_path)
 
         # retreives the name of the MDL file itself
         model_file = re.sub(r'.*/', "", entity.ent_modelpath)
-        print(model_file)
 
         bpy.ops.entrec.sourceio_mdl(filepath=model_path, files=[{'name':model_file}])
 
@@ -316,10 +309,8 @@ def ApplyEntData():
     scene_collection  = bpy.context.scene.collection
 
     for frame in entRecBridge.m_parsed_recording:
-        print(frame.frame_num)
 
 
-        print("for event in frame.recorded_events:")
         for event in frame.recorded_events:
             print(f"processing event of type {event.event_type}...")
 
@@ -404,11 +395,9 @@ def ApplyEntData():
 
 
         
-        print("for index, ent_data in enumerate(frame.recorded_entdata):")
         for index, ent_data in enumerate(frame.recorded_entdata):
 
             if len(receiving_entlist) < index:
-                print("ApplyEntData: Len is less than index")
                 continue
             
 
@@ -419,7 +408,7 @@ def ApplyEntData():
                     entity = receiving_entlist[i]
                     continue
             if entity == None:
-                print(f"ApplyEntData: Could not find ent named {ent_data.ent_name}")
+                print(f"ApplyEntData: Could not find with ID of {ent_data.ent_id}")
                 continue
 
             curFrame = ent_data.engine_tick_count - entRecUtils.first_engine_tick

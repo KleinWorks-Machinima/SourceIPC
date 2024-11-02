@@ -38,7 +38,6 @@ RawMsg_t::RawMsg_t(char* msg_str, int frameNum, int engineTickCount)
 		ent_events = new char[entEventsStrBuffer.GetSize() + 1];
 
 		strcpy_s(ent_events, entEventsStrBuffer.GetSize() + 1, entEventsStrBuffer.GetString());
-		printf("RawMsg_t: ent_events = %s.\n", ent_events);
 	}
 	else
 		has_events = false;
@@ -257,7 +256,6 @@ void EntRecBridge::ParseRawMsgData()
 	rapidjson::Document cl_raw_metadata;
 	rapidjson::Document sv_raw_metadata;
 
-	printf("step 1. parse metadata\n");
 	// step 1. parse metadata
 
 
@@ -288,7 +286,6 @@ void EntRecBridge::ParseRawMsgData()
 
 
 
-	printf("step 2. parse raw messages\n");
 	// step 2. parse raw messages
 
 
@@ -370,19 +367,15 @@ void EntRecBridge::FilterParsedMessages()
 
 	int cl_startTick = m_cl_parsed_data.front().engine_tick_count;
 	int sv_startTick = m_sv_parsed_data.front().engine_tick_count;
-	printf("cl_startTick = [%d]\n", cl_startTick);
 
 	int cl_tick = 0;
 	int sv_tick = 0;
 
-	printf("for (auto& cl_data : m_cl_parsed_data) {\n");
 	for (auto& cl_data : m_cl_parsed_data) {
 		cl_tick = cl_data.engine_tick_count - cl_startTick;
-		printf("cl_tick = [%d]\n", cl_tick);
 
 		RecordedFrame_t recordedFrame;
 
-		printf("if (cl_tick > 0 && cl_tick < m_parsed_recording.size()) {\n");
 		if (cl_tick >= 0 && cl_tick < m_parsed_recording.size()) {
 			recordedFrame = m_parsed_recording[cl_tick];
 
@@ -393,7 +386,6 @@ void EntRecBridge::FilterParsedMessages()
 			m_parsed_recording[cl_tick] = recordedFrame;
 		}
 		else {
-			printf("else {\n");
 
 			recordedFrame.recorded_entdata.push_back(cl_data);
 
@@ -402,15 +394,14 @@ void EntRecBridge::FilterParsedMessages()
 			m_parsed_recording.push_back(recordedFrame);
 		}
 	}
-	printf("for (auto& sv_data : m_sv_parsed_data)\n");
+
 	for (auto& sv_data : m_sv_parsed_data) {
 		sv_tick = sv_data.engine_tick_count - sv_startTick;
 
-		printf("sv_tick = [%d]\n", sv_tick);
 
 		RecordedFrame_t recordedFrame;
 
-		printf("if (sv_tick > 0 && sv_tick < m_parsed_recording.size()) {\n");
+
 		if (sv_tick >= 0 && sv_tick < m_parsed_recording.size()) {
 			recordedFrame = m_parsed_recording[sv_tick];
 
@@ -421,7 +412,6 @@ void EntRecBridge::FilterParsedMessages()
 			m_parsed_recording[sv_tick] = recordedFrame;
 		}
 		else {
-			printf("else {\n");
 
 			recordedFrame.recorded_entdata.push_back(sv_data);
 
@@ -433,18 +423,17 @@ void EntRecBridge::FilterParsedMessages()
 
 
 
-	printf("for (auto& sv_event : m_sv_parsed_events) {\n");
+
 	for (auto& sv_event : m_sv_parsed_events) {
 		RecordedFrame_t recordedFrame;
 
-		printf("if (!m_parsed_recording.empty()) {\n");
+
 		if (!m_parsed_recording.empty()) {
 			recordedFrame = m_parsed_recording[0];
 			recordedFrame.recorded_events.push_back(sv_event);
 			m_parsed_recording[0] = recordedFrame;
 		}
 		else {
-			printf("else {\n");
 			recordedFrame.frame_num = 0;
 			recordedFrame.recorded_events.push_back(sv_event);
 			m_parsed_recording.push_back(recordedFrame);
@@ -454,14 +443,13 @@ void EntRecBridge::FilterParsedMessages()
 	for (auto& cl_event : m_cl_parsed_events) {
 		RecordedFrame_t recordedFrame;
 
-		printf("if (!m_parsed_recording.empty()) {\n");
+
 		if (!m_parsed_recording.empty()) {
 			recordedFrame = m_parsed_recording[0];
 			recordedFrame.recorded_events.push_back(cl_event);
 			m_parsed_recording[0] = recordedFrame;
 		}
 		else {
-			printf("else {\n");
 			recordedFrame.frame_num = 0;
 			recordedFrame.recorded_events.push_back(cl_event);
 			m_parsed_recording.push_back(recordedFrame);
