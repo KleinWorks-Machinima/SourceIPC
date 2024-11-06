@@ -77,20 +77,22 @@ class EntRecUtils():
         quatAngles  = ent_data.ent_rot['0']
         eulerAngles = mathutils.Euler()
 
+        
         eulerAngles.x = quatAngles.x
-        eulerAngles.y = quatAngles.y
-        eulerAngles.z = quatAngles.z
+        # swap Y and Z
+        eulerAngles.y = quatAngles.z
+        eulerAngles.z = quatAngles.y
 
+        # source cameras have a -90 rotation by default
         eulerAngles.x -= 90
-        eulerAngles.y -= 90
+        eulerAngles.z -= 90
 
         eulerAngles.x = math.radians(eulerAngles.x)
         eulerAngles.y = math.radians(eulerAngles.y)
         eulerAngles.z = math.radians(eulerAngles.z)
 
+        # X is reversed, so have to unreverse it
         eulerAngles.x = -eulerAngles.x
-        eulerAngles.y = eulerAngles.z
-        eulerAngles.z = eulerAngles.y
         
 
         entityObject.location[0] = HammerUnitToBlenderUnit(vecOrigin.x)
